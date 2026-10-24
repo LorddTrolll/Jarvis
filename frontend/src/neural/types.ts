@@ -1,5 +1,5 @@
 export type MemoryKind = 'document' | 'question' | 'answer' | 'search' | 'conversation' | 'project' | 'topic' | 'image' | 'video' | 'note' | 'task'
-export interface MemoryNode { id: string; kind: MemoryKind; title: string; excerpt: string; created_at: string; source_id: number | null; meta: { format?: string; sources?: { title?: string; url?: string; node_id?: string }[]; derived?: boolean; completed_at?: string | null } }
+export interface MemoryNode { id: string; kind: MemoryKind; title: string; excerpt: string; created_at: string; source_id: number | null; meta: { format?: string; sources?: { title?: string; url?: string; node_id?: string }[]; derived?: boolean; completed_at?: string | null; lesson_id?: string } }
 export interface MemoryEdge { source: string; target: string; weight: number; relation: string; reason: string }
 export interface MemoryGraph { nodes: MemoryNode[]; edges: MemoryEdge[]; total: number; revision: number; categories: Partial<Record<MemoryKind, number>>; next_offset: number | null; embedding_method: string }
 export interface MemoryDetail extends MemoryNode { content: string; related: (MemoryNode & { reason: string; relation: string; weight: number })[]; original_url: string | null; mime: string | null }

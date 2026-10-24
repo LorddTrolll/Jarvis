@@ -60,4 +60,4 @@ class Approval(BaseModel):
 
 
 class Panel(BaseModel):
-    panel_name: Literal["dashboard", "neural", "chat", "vision", "tasks", "search", "files", "integrations", "settings"]
+    panel_name: Literal["dashboard", "neural", "education", "chat", "vision", "tasks", "search", "files", "integrations", "settings"]

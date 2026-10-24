@@ -11,7 +11,7 @@ export function Empty({ title, children, icon }: { title: string; children: Reac
 export function Notice({ children }: { children: ReactNode }) {
   return <div className="notice"><AlertCircle size={17} /><span>{children}</span></div>
 }
-export function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
+export function Modal({ title, children, onClose, wide = false }: { title: string; children: ReactNode; onClose: () => void; wide?: boolean }) {
   const modal = useRef<HTMLElement>(null)
   const close = useRef(onClose); close.current = onClose
   useEffect(() => {
@@ -31,7 +31,7 @@ export function Modal({ title, children, onClose }: { title: string; children: R
     return () => { element?.removeEventListener('keydown', handler); previous?.focus() }
   }, [])
   return <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
-    <section ref={modal} className="modal" role="dialog" aria-modal="true" aria-label={title} data-sensitive="true">
+    <section ref={modal} className="modal" style={wide?{maxWidth:900}:undefined} role="dialog" aria-modal="true" aria-label={title} data-sensitive="true">
       <div className="section-head"><h2>{title}</h2><button className="icon-button" aria-label="Fechar diálogo" onClick={onClose}><X size={18} /></button></div>{children}
     </section>
   </div>

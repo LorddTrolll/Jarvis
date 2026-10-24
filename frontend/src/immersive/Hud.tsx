@@ -14,6 +14,7 @@ interface Props {
   temporary: boolean; onTemporary: () => void; cameraActive: boolean; voiceSupported: boolean
 }
 const SERVICES: { id:Panel; title:string; label:string; icon:typeof BrainCircuit }[] = [
+  {id:'education',title:'Professor',label:'Central Pedagógica Jarvis',icon:FolderOpen},
   {id:'tasks',title:'Agenda',label:'Agenda e tarefas',icon:CheckCheck},
   {id:'neural',title:'Memórias',label:'Memórias',icon:BrainCircuit},
   {id:'files',title:'Arquivos',label:'Arquivos e memória',icon:FolderOpen},

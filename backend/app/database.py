@@ -91,6 +91,15 @@ def initialize(settings):
         connection.execute("PRAGMA journal_mode=WAL")
     # Migração aditiva; preserva o banco anterior em backup local uma única vez.
     from .memory import models  # noqa: F401 — registra novas tabelas no metadata
+    from .education import models as education_models  # noqa: F401
+    if inspect(engine).has_table("memory_nodes") and not inspect(engine).has_table("lesson_jobs"):
+        import sqlite3
+        backups = settings.data_dir / "backups"
+        backups.mkdir(exist_ok=True)
+        backup_path = backups / "before-education-v1.db"
+        if not backup_path.exists():
+            with sqlite3.connect(settings.data_dir / "jarvis.db") as original, sqlite3.connect(backup_path) as backup:
+                original.backup(backup)
     if inspect(engine).has_table("documents") and not inspect(engine).has_table("memory_state"):
         import sqlite3
         backups = settings.data_dir / "backups"

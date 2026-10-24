@@ -1,0 +1,11 @@
+import type { Source } from '../types'
+export interface Video { id:string;title:string;channel:string;description:string;url:string;thumbnail:string;duration_seconds:number|null;language_verified:boolean;validation:string }
+export interface Research { id?:string;query:string;grade:number;sources:Source[];videos:Video[];warnings:string[];memory_id?:string;analysis:{summary:string;conflicts:string[];limitations:string}|null }
+export interface EducationEvent { nonce:number;job_id?:string;research?:Research }
+export interface Preferences { school:string;teacher:string;subject:string;grade:number;term:string;lessons:number;questions:number;activity_type:string;slide_style:string;adaptation:string;auto_save:boolean }
+export interface Activity { number:number;kind:'objective'|'discursive';prompt:string;options:string[];answer:string;explanation:string }
+export interface Plan { title:string;overview:string;objectives:string[];lessons:{title:string;duration_minutes:number;explanation:string;methodology:string[];resources:string[];evaluation:string}[];activities:Activity[];slides:{title:string;bullets:string[]}[];mind_map:{label:string;items:string[]}[];word_search:string[];illustration:string;illustration_caption:string;curriculum:string[] }
+export interface TeachingFile { id:string;name:string;kind:string;revision:number;pages:number;bytes:number;url:string;sha256:string }
+export interface Job { id:string;status:'queued'|'running'|'completed'|'cancelled'|'failed';stage:string;progress:number;request:{topic:string;grade:number;questions:number;lessons:number;prepare_share:boolean};plan:Plan;context:Research;warnings:string[];error:string|null;revision:number;memory_id:string|null;created_at:string;files:TeachingFile[];revisions:{number:number;created_at:string}[];shares:{id:string;state:string;created_at:string}[] }
+export type JobSummary = Pick<Job,'id'|'status'|'stage'|'progress'|'revision'|'memory_id'|'created_at'> & {topic:string;grade:number}
+export const MATERIALS:Record<string,string>={lesson_plan:'Plano de aula',sequence:'Sequência didática',summary:'Resumo ilustrado',slides:'Slides',activities:'Atividades',assessment:'Avaliação',answer_key:'Gabarito separado',mind_map:'Mapa mental',word_search:'Caça-palavras',adapted:'Material adaptado',coloring:'Desenho para colorir',text:'Texto em PDF'}

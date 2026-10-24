@@ -1,5 +1,5 @@
 from pathlib import Path
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     openai_key: str = ""
     openai_model: str = "gpt-4.1-mini"
     search_key: str = ""
+    youtube_api_key: str = Field(default="", validation_alias=AliasChoices("JARVIS_YOUTUBE_API_KEY", "YOUTUBE_API_KEY", "youtube_api_key"))
     telegram_token: str = ""
     history_days: int = Field(default=30, ge=1, le=3650)
     api_rate_per_minute: int = Field(default=300, ge=30, le=3000)

@@ -1,6 +1,8 @@
 # JARVIS — núcleo pessoal com voz e gestos
 
-A versão **0.5** coloca o **cérebro de memórias 3D no centro da tela principal**, com neurônios conectados, luminosidade pulsante, zoom, títulos e abertura do conteúdo de cada registro. Cada esfera corresponde a uma memória salva; tarefas concluídas passam a formar neurônios também. O círculo decorativo da versão anterior foi removido.
+A versão **0.6** adiciona a **Central Pedagógica Jarvis**: uma ordem por voz ou texto inicia pesquisa de fontes e vídeos, planejamento de aulas, geração de PDFs reais e salvamento no cérebro. A interface acompanha o progresso, permite cancelar, revisar e editar, mantém versões e prepara o compartilhamento assistido pelo WhatsApp.
+
+O **cérebro de memórias 3D permanece no centro da tela principal**, com neurônios conectados, luminosidade pulsante, zoom, títulos e abertura do conteúdo de cada registro. Cada esfera corresponde a uma memória salva; tarefas concluídas e materiais pedagógicos formam novos neurônios. Veja [como usar o Professor Jarvis](docs/CENTRAL_PEDAGOGICA.md).
 
 ![Cérebro com notas e tarefas de teste realmente persistidas](docs/assets/brain-home.png)
 
@@ -34,8 +36,13 @@ Inspirado na experiência de [holo-gestures](https://github.com/zubair-trabzada/
 | Busca vetorial local no cérebro, por tipo e data | TF-IDF/LSA local; sem download de modelo |
 | Notas, projetos, conversa temporária e controle de salvamento | Implementado |
 | Pesquisa na internet com fontes e histórico | Adaptador Brave Search; requer chave |
+| Pesquisa educativa no YouTube com metadados e miniaturas | YouTube Data API v3; requer chave e cota; vídeos abrem no YouTube |
+| Aulas por voz, planos, slides, atividades e PDFs | Central Pedagógica; planejamento e revisão por OpenAI, pesquisa por Brave/YouTube |
+| PDF de texto próprio | Funciona sem IA; PDF real com fonte incorporada e prévia |
+| Materiais no cérebro, revisões, pacote ZIP e histórico | Persistência no backend, originais disponíveis no leitor do cérebro |
+| Compartilhar PDFs no WhatsApp pessoal | Assistido pela Web Share API; revisão e clique, escolha do grupo no dispositivo, download como alternativa |
 | Rascunhos e envio de mensagens Telegram | Bot API real; revisão e aprovação de uso único; requer token e chat autorizado |
-| Gmail, Calendar, WhatsApp Business, Instagram, Facebook, Discord, Slack, X, YouTube | Planejados, explicitamente identificados; sem conexão simulada |
+| Gmail, Calendar, WhatsApp Business, Instagram, Facebook, Discord, Slack, X, Alexa e Smart TV | Sem conectores implementados; não há conexão simulada |
 | Ativação contínua pela palavra “Jarvis”, OAuth, inbox unificada, posts e embeddings pré-treinados | Ainda não implementados |
 
 Não há resultados fictícios, contas conectadas fictícias nem envio automático pelo modelo. A aplicação não oferece shell ou controle irrestrito do computador.
@@ -76,7 +83,7 @@ npm run dev
 
 O backend também serve `frontend/dist` quando o build existe. Nesse caso, a interface e a API compartilham a porta 8000, sem Vite. As rotas da interface são mantidas no estado da aplicação.
 
-## Configurar IA, busca e Telegram
+## Configurar IA, pesquisa, YouTube e Telegram
 
 Edite **`.env` na raiz** e reinicie o backend. Os valores não são disponibilizados ao frontend e não devem entrar no Git. Não use prefixo `VITE_` para chaves.
 
@@ -85,17 +92,18 @@ Edite **`.env` na raiz** e reinicie o backend. Os valores não são disponibiliz
 | `JARVIS_OPENAI_KEY` | Chave criada no painel oficial da OpenAI; conversa livre e ferramentas |
 | `JARVIS_OPENAI_MODEL` | Modelo com Chat Completions, streaming e function calling; padrão `gpt-4.1-mini` |
 | `JARVIS_SEARCH_KEY` | Chave da [Brave Search API](https://api-dashboard.search.brave.com/) |
+| `YOUTUBE_API_KEY` | Chave do Google Cloud com YouTube Data API v3 ativada; também aceita `JARVIS_YOUTUBE_API_KEY` |
 | `JARVIS_TELEGRAM_TOKEN` | Token de um bot criado pelo [BotFather](https://t.me/BotFather) |
 | `JARVIS_PASSWORD` | Senha do proprietário; obrigatória para acesso fora de loopback e para Docker |
 | `JARVIS_COOKIE_SECURE` | `true` quando servido por HTTPS; `false` apenas no desenvolvimento local |
 | `JARVIS_ALLOWED_ORIGINS` | Origens exatas separadas por vírgulas, com esquema e porta |
 | `JARVIS_DATA_DIR` | Diretório dos dados; padrão `data`, relativo ao diretório de execução |
-| `JARVIS_HISTORY_DAYS` | Retenção de conversas, pesquisas e auditoria; padrão 30, limpeza na inicialização |
+| `JARVIS_HISTORY_DAYS` | Retenção de conversas, pesquisas, auditoria e trabalhos pedagógicos sem vínculo ao cérebro; padrão 30, limpeza na inicialização. Materiais salvos no cérebro permanecem até exclusão explícita |
 | `JARVIS_API_RATE_PER_MINUTE` | Limite por IP da API; padrão 300. Login tem limite separado de 10/minuto |
 
 Clima e busca de cidades não exigem chave e usam `api.open-meteo.com` e `geocoding-api.open-meteo.com`. A localização aproximada opcional consulta `nominatim.openstreetmap.org`. Se usar uma rede restrita, permita esses hosts. Veja [design, contexto e voz](docs/DESIGN_E_CONTEXTO.md).
 
-Domínios HTTPS dos adaptadores opcionais: `api.openai.com`, `api.search.brave.com` e `api.telegram.org`, conforme os adaptadores que habilitar. A instalação usa npm/PyPI e `raw.githubusercontent.com`. Não é necessário conectar uma conta GitHub pessoal à aplicação.
+Domínios HTTPS dos adaptadores opcionais: `api.openai.com`, `api.search.brave.com`, `www.googleapis.com` (YouTube Data API v3), `i.ytimg.com` (miniaturas verificadas pelo backend) e `api.telegram.org`, conforme os adaptadores que habilitar. A instalação usa npm/PyPI e `raw.githubusercontent.com`. Não é necessário conectar uma conta GitHub pessoal à aplicação.
 
 No Telegram, o destinatário precisa iniciar a conversa com o bot ou autorizar o bot no grupo. Use o `chat_id` numérico obtido pelas APIs oficiais. O conector não lê o histórico da sua conta pessoal. A presença de um token é mostrada como **configurado**, sem alegar que a autenticação foi verificada.
 
@@ -112,7 +120,9 @@ Desconexão: remova a variável do adaptador e reinicie o backend; para revogaç
 7. Clique em **Localização** para buscar uma cidade ou usar a posição aproximada com permissão. O relógio acompanha o fuso selecionado; o clima mostra fonte e horário. `Que horas são?`, `Que dia é hoje?`, `Como está o tempo?` e `Onde estou?` funcionam sem chave de IA; clima requer conexão.
 8. Em **Conexões**, prepare um rascunho Telegram, revise destinatário e conteúdo, marque sua autorização e confirme o envio. Uma resposta de sucesso só é exibida após confirmação da API. Se a entrega for incerta, consulte o Telegram antes de tentar novamente.
 
-**Interromper** desliga a câmera, cancela o ditado, a síntese de voz e a resposta em curso. `Esc` interrompe voz/resposta e fecha diálogos ou o módulo atual. Trocar de aba desliga câmera e voz. Ações de ferramentas já concluídas não são revertidas ao interromper a resposta.
+9. Em **Professor**, crie uma aula, pesquise vídeos ou gere PDF de texto próprio. Você pode dizer: “Jarvis, prepare uma aula completa sobre o Império Romano para o 7º ano, com três aulas, dez atividades com gabarito separado e três vídeos. Organize em PDF e salve no cérebro”. Para recuperar: “Jarvis, recupere a aula salva sobre Império Romano”. Consulte o [guia completo](docs/CENTRAL_PEDAGOGICA.md).
+
+**Interromper** desliga a câmera, cancela o ditado, a síntese de voz, a resposta e o trabalho pedagógico acompanhado em curso. `Esc` interrompe voz/resposta e fecha diálogos ou o módulo atual. Trocar de aba desliga câmera e voz. Ações de ferramentas já concluídas não são revertidas ao interromper a resposta.
 
 ## Cérebro neural e atualização
 
@@ -148,7 +158,7 @@ npm run test:e2e
 
 Os testes de navegador iniciam servidores nas portas 5173/8000; mantenha-as livres. O runner usa banco temporário separado e câmera sintética do Chromium. Para usar um Chromium existente no Linux, defina `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium`.
 
-As chaves dos testes são valores de teste e os transportes externos são substituídos. **Esses testes não equivalem a autenticar ou enviar mensagens por uma conta real.** Os resultados da versão neural e as métricas estão em [VALIDACAO_NEURAL.md](docs/VALIDACAO_NEURAL.md). A validação histórica da base está em [VALIDACAO.md](docs/VALIDACAO.md).
+As chaves dos testes são valores de teste e os transportes externos são substituídos. **Esses testes não equivalem a autenticar ou enviar mensagens por uma conta real.** Os resultados da versão neural e as métricas estão em [VALIDACAO_NEURAL.md](docs/VALIDACAO_NEURAL.md). A Central Pedagógica está documentada em [VALIDACAO_PEDAGOGICA.md](docs/VALIDACAO_PEDAGOGICA.md). A validação histórica da base está em [VALIDACAO.md](docs/VALIDACAO.md).
 
 Para atualizar as dependências Python intencionalmente, use `uv lock --project backend` e regenere ambos os arquivos `requirements*.lock` com `uv export --frozen --no-emit-project` (sem dev para runtime, `--all-groups` para desenvolvimento). Não edite hashes manualmente.
 

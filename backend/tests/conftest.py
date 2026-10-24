@@ -7,7 +7,7 @@ from app.main import create_app
 
 @pytest.fixture
 def app(tmp_path):
-    return create_app(Settings(_env_file=None, data_dir=tmp_path, password="teste-seguro", openai_key="", search_key="", telegram_token=""))
+    return create_app(Settings(_env_file=None, data_dir=tmp_path, password="teste-seguro", openai_key="", search_key="", youtube_api_key="", telegram_token=""))
 
 
 @pytest.fixture

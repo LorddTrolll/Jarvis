@@ -1,4 +1,4 @@
-export type Panel = 'dashboard' | 'neural' | 'chat' | 'vision' | 'tasks' | 'search' | 'files' | 'integrations' | 'settings'
+export type Panel = 'dashboard' | 'neural' | 'education' | 'chat' | 'vision' | 'tasks' | 'search' | 'files' | 'integrations' | 'settings'
 export interface Status { ai_configured: boolean; ai_model: string; search_configured: boolean; telegram_configured: boolean; storage: string; history_days: number; password_enabled: boolean }
 export interface Message { id: number; role: 'user' | 'assistant'; content: string; created_at?: string }
 export interface Task { id: number; title: string; done: boolean; priority: string; due_at: string | null }

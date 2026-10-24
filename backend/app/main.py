@@ -24,6 +24,8 @@ from .memory import store as memory
 from .memory.api import ingest, router as neural_router
 from .environment import EnvironmentService, router as environment_router
 from .system import SystemMonitor
+from .education.service import KnowledgeHub
+from .education.api import router as education_router
 from .memory.models import (Conversation, DocumentChunk, DocumentOriginal, MemoryEdge, MemoryNode,
                             MemorySuppression, MessageConversation)
 
@@ -48,9 +50,12 @@ def create_app(settings: Settings | None = None):
     chat_lock = asyncio.Lock()
     environment = EnvironmentService()
     monitor = SystemMonitor()
+    knowledge = KnowledgeHub(settings, sessions)
 
     @asynccontextmanager
     async def lifespan(app):
+        knowledge.recover()
+        knowledge.retention(now() - timedelta(days=settings.history_days))
         with sessions() as db:
             cutoff = now() - timedelta(days=settings.history_days)
             for model in (Message, Search, Audit):
@@ -60,12 +65,14 @@ def create_app(settings: Settings | None = None):
             db.commit()
             memory.bootstrap(db)
         yield
+        await knowledge.close()
         engine.dispose()
 
-    app = FastAPI(title="JARVIS AI", version="0.5.0", lifespan=lifespan)
+    app = FastAPI(title="JARVIS AI", version="0.6.0", lifespan=lifespan)
     app.state.sessions = sessions
     app.state.settings = settings
     app.state.environment = environment
+    app.state.knowledge = knowledge
     app.add_middleware(CORSMiddleware, allow_origins=list(settings.origins), allow_credentials=True,
                        allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"], allow_headers=["Content-Type", "X-Jarvis-Confirm"])
 
@@ -122,10 +129,11 @@ def create_app(settings: Settings | None = None):
     auth = [Depends(authenticate)]
     app.include_router(neural_router(database, authenticate, sessions, chat_lock))
     app.include_router(environment_router(environment, authenticate))
+    app.include_router(education_router(knowledge, database, authenticate))
 
     @app.get("/api/health")
     def health():
-        result = {"status": "ok", "version": "0.5.0"}
+        result = {"status": "ok", "version": "0.6.0"}
         if settings.desktop_token:
             result["desktop_instance"] = hashlib.sha256(settings.desktop_token.encode()).hexdigest()[:16]
         return result
@@ -187,7 +195,7 @@ def create_app(settings: Settings | None = None):
                 with sessions() as db:
                     try:
                         async for event in ai.conversation(settings, db, body.text, body.allow_documents,
-                                                          body.temporary, body.temporary_history, body.environment, environment):
+                                                          body.temporary, body.temporary_history, body.environment, environment, knowledge):
                             yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
                     except asyncio.CancelledError:
                         db.rollback()
@@ -338,11 +346,13 @@ def create_app(settings: Settings | None = None):
     def clear_data(request: Request, db=Depends(database)):
         if request.headers.get("X-Jarvis-Confirm") != "DELETE":
             raise HTTPException(400, "Confirmação de exclusão ausente.")
-        if chat_lock.locked():
+        if chat_lock.locked() or knowledge.active():
             raise HTTPException(409, "Interrompa a resposta antes de excluir dados.")
         if db.scalar(select(Draft.id).where(Draft.state == "sending").limit(1)):
             raise HTTPException(409, "Aguarde a conclusão do envio antes de excluir dados.")
-        for model in (MemoryEdge, MemoryNode, MemorySuppression, MessageConversation, Conversation,
+        from .education.models import ShareEvent, TeachingFile, LessonRevision, LessonJob, Research, TeachingPreferences
+        for model in (ShareEvent, TeachingFile, LessonRevision, LessonJob, Research, TeachingPreferences,
+                      MemoryEdge, MemoryNode, MemorySuppression, MessageConversation, Conversation,
                       DocumentChunk, DocumentOriginal, Message, Task, Document, Draft, Search, Audit):
             db.execute(delete(model))
         memory.touch(db)
