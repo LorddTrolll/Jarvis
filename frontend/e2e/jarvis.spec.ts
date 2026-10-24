@@ -4,14 +4,10 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await page.getByLabel('Senha do proprietário').fill('e2e-password')
   await page.getByRole('button', { name: 'Entrar no meu espaço' }).click()
-  await expect(page.getByTestId('neural-memory')).toBeVisible()
-  await page.getByRole('navigation').getByRole('button', { name: 'Centro de comando' }).click()
-  await expect(page.getByRole('heading', { name: 'Tudo começa com uma ideia.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Mais espaço para suas ideias.' })).toBeVisible()
   await page.request.delete('/api/data', { headers: { 'X-Jarvis-Confirm': 'DELETE' } })
   await page.reload()
-  await expect(page.getByTestId('neural-memory')).toBeVisible()
-  await page.getByRole('navigation').getByRole('button', { name: 'Centro de comando' }).click()
-  await expect(page.getByRole('heading', { name: 'Tudo começa com uma ideia.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Mais espaço para suas ideias.' })).toBeVisible()
 })
 
 test('tarefas, conversa, documentos e revisão sem falsos envios', async ({ page }) => {
@@ -49,6 +45,7 @@ test('tarefas, conversa, documentos e revisão sem falsos envios', async ({ page
 test('MediaPipe carrega pesos e WASM locais com webcam sintética e encerra tracks', async ({ page }) => {
   const requests: string[] = []
   page.on('request', r => requests.push(r.url()))
+  await page.getByRole('navigation').getByRole('button', { name: 'Visão e gestos' }).click()
   await page.getByRole('button', { name: 'Ativar câmera', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Desligar câmera', exact: true })).toBeVisible({ timeout: 45000 })
   await expect(page.locator('.camera-info')).toContainText(/\d+ FPS/)
@@ -122,9 +119,11 @@ test('câmera negada informa erro e mantém o assistente disponível', async ({ 
   await page.evaluate(() => {
     navigator.mediaDevices.getUserMedia = async () => { throw new DOMException('Negado', 'NotAllowedError') }
   })
+  await page.getByRole('navigation').getByRole('button', { name: 'Visão e gestos' }).click()
   await page.getByRole('button', { name: 'Ativar câmera', exact: true }).click()
   await expect(page.getByRole('alert')).toContainText('Permissão de câmera negada')
   await expect(page.getByRole('button', { name: 'Ativar câmera', exact: true })).toBeVisible()
+  await page.getByRole('navigation').getByRole('button', { name: 'Início', exact:true }).click()
   await page.getByRole('button', { name: 'Falar com Jarvis' }).click()
   await expect(page.getByRole('dialog')).toContainText('o áudio pode ser enviado')
   await page.getByRole('button', { name: 'Fechar diálogo' }).click()

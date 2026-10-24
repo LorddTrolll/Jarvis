@@ -9,10 +9,10 @@ export interface NeuralPreferences { auto_save: boolean; gesture: NeuralGestureC
 export interface NeuralSearchResult extends MemoryNode { score: number; method: string }
 export interface NeuralCommand { id: number; action: string; query?: string }
 export const CATEGORIES: { id: MemoryKind; label: string; color: string }[] = [
-  { id: 'document', label: 'Documentos', color: '#4edbe4' }, { id: 'question', label: 'Perguntas', color: '#709eff' },
-  { id: 'answer', label: 'Respostas', color: '#b197ff' }, { id: 'search', label: 'Pesquisas', color: '#f0c56b' },
-  { id: 'conversation', label: 'Conversas', color: '#62ddb0' }, { id: 'project', label: 'Projetos', color: '#f29cba' },
-  { id: 'topic', label: 'Assuntos', color: '#d7f6ff' }, { id: 'image', label: 'Imagens', color: '#f6a36c' },
-  { id: 'video', label: 'Vídeos', color: '#efbc88' }, { id: 'note', label: 'Notas', color: '#65cbd4' },
+  { id: 'document', label: 'Documentos', color: '#a78bfa' }, { id: 'question', label: 'Perguntas', color: '#c4b5fd' },
+  { id: 'answer', label: 'Respostas', color: '#8b5cf6' }, { id: 'search', label: 'Pesquisas', color: '#ddd6fe' },
+  { id: 'conversation', label: 'Conversas', color: '#b7a1ed' }, { id: 'project', label: 'Projetos', color: '#d8b4fe' },
+  { id: 'topic', label: 'Assuntos', color: '#ede9fe' }, { id: 'image', label: 'Imagens', color: '#c084fc' },
+  { id: 'video', label: 'Vídeos', color: '#9e80d4' }, { id: 'note', label: 'Notas', color: '#d3c2f0' },
 ]
 export const DEFAULT_NEURAL_GESTURE: NeuralGestureConfig = { pinch_threshold: .28, double_ms: 450, hold_ms: 600, reverse_amplitude: .75, reverse_ms: 220 }

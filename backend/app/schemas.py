@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Literal
 from pydantic import BaseModel, Field, field_validator
+from .environment import EnvironmentContext
 
 
 class Login(BaseModel):
@@ -36,6 +37,7 @@ class ChatInput(BaseModel):
     allow_documents: bool = False
     temporary: bool = False
     temporary_history: list["HistoryMessage"] = Field(default_factory=list, max_length=24)
+    environment: EnvironmentContext | None = None
 
 
 class HistoryMessage(BaseModel):

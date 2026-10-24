@@ -12,7 +12,7 @@ interface Props { graph: MemoryGraph; view: NeuralView; matches: string[] | null
 
 const Objects = forwardRef<SceneHandle,Props>(function Objects(props,ref) {
   const { graph, view, matches, hovered, spread, effects, reduced, onHover, onSelect, onStats, onReady, onCamera, low } = props
-  const { camera, gl, invalidate } = useThree()
+  const { camera, gl, invalidate, size } = useThree()
   const nodes = useMemo(() => layout(graph, spread), [graph,spread])
   const edges = useMemo(() => sceneEdges(nodes,graph.edges).slice(0,low ? 1800 : 7000), [nodes,graph.edges,low])
   const indices = useMemo(() => new Map(nodes.map((n,i) => [n.id,i])), [nodes])
@@ -58,7 +58,7 @@ const Objects = forwardRef<SceneHandle,Props>(function Objects(props,ref) {
     }
     edges.forEach((edge,i) => {
       const dim = view.level !== 'global' && !selected.has(edge.source) && !selected.has(edge.target)
-      color.set(edge.relation === 'similarity' ? '#3d8bc5' : '#4b9eab').multiplyScalar(dim ? .09 : edge.relation === 'category' ? .23 : .52)
+      color.set(edge.relation === 'similarity' ? '#8c65bd' : '#ba8dde').multiplyScalar(dim ? .09 : edge.relation === 'category' ? .23 : .52)
       color.toArray(buffers.lineColors,i*6); color.toArray(buffers.lineColors,i*6+3)
     })
     if (line.current) line.current.geometry.attributes.color.needsUpdate = true
@@ -66,15 +66,22 @@ const Objects = forwardRef<SceneHandle,Props>(function Objects(props,ref) {
   },[nodes,indices,matches,view.level,selected,buffers,edges,invalidate,hovered])
   useEffect(() => {
     const node = nodes.find(n => n.id === view.selected)
-    if (view.camera && view.target) { cameraGoal.current.set(...view.camera); targetGoal.current.set(...view.target) }
+    if (view.camera && view.target && size.width / size.height >= .75) { cameraGoal.current.set(...view.camera); targetGoal.current.set(...view.target) }
     else if (node && view.level !== 'global') {
       targetGoal.current.set(...node.position)
       cameraGoal.current.copy(targetGoal.current).add(new THREE.Vector3(.5,.5,view.level === 'file' ? 6.5 : 9))
-    } else { targetGoal.current.set(0,0,0); cameraGoal.current.set(0,.5,18) }
+    } else {
+      const bounds = new THREE.Box3().setFromPoints(nodes.map(n => new THREE.Vector3(...n.position)))
+      if (nodes.length) bounds.getCenter(targetGoal.current); else targetGoal.current.set(0,0,0)
+      const extent = bounds.isEmpty() ? new THREE.Vector3(2,2,2) : bounds.getSize(new THREE.Vector3())
+      const aspect = Math.max(.1, size.width / Math.max(1,size.height))
+      const distance = Math.max(8, (extent.y / 2 + 1.5) / Math.tan(Math.PI / 8), (extent.x / 2 + 1.5) / (Math.tan(Math.PI / 8) * aspect))
+      cameraGoal.current.copy(targetGoal.current).add(new THREE.Vector3(0,.5,distance + extent.z / 2))
+    }
     transitioning.current = true; invalidate()
-    // Coordenadas persistidas só são aplicadas ao mudar o nível/seleção, não durante órbita manual.
+    // Reenquadra na mudança de visão/tamanho; a órbita manual não altera essas dependências.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[view.level,view.selected,view.parent])
+  },[view,size.width,size.height,!!nodes.length])
   useEffect(() => { onReady() },[onReady])
   useImperativeHandle(ref,() => ({
     hitTest(point) {
@@ -160,13 +167,13 @@ const Objects = forwardRef<SceneHandle,Props>(function Objects(props,ref) {
   })
   const labels = nodes.filter(n => n.hub || n.id === hovered || n.id === view.selected || matches?.slice(0,4).includes(n.id))
   return <>
-    <OrbitControls ref={controls} enableDamping dampingFactor={.09} minDistance={2.5} maxDistance={35} onStart={() => { transitioning.current = false }} onEnd={onCamera} />
+    <OrbitControls ref={controls} enableDamping dampingFactor={.09} minDistance={2.5} maxDistance={95} onStart={() => { transitioning.current = false }} onEnd={onCamera} />
     <instancedMesh ref={mesh} args={[undefined,undefined,nodes.length]} frustumCulled={false} onPointerMove={e => { e.stopPropagation(); onHover(nodes[e.instanceId!]?.id || null) }} onPointerOut={() => onHover(null)} onClick={e => { e.stopPropagation(); if(e.instanceId !== undefined) onSelect(nodes[e.instanceId].id) }} onDoubleClick={e => { e.stopPropagation(); if(e.instanceId !== undefined) onSelect(nodes[e.instanceId].id,true) }}>
       {low?<icosahedronGeometry args={[1,0]}/>:<sphereGeometry args={[1,12,10]}/>}<meshBasicMaterial toneMapped={false} />
     </instancedMesh>
     <lineSegments ref={line} frustumCulled={false}><bufferGeometry><bufferAttribute attach="attributes-position" args={[buffers.lines,3]} /><bufferAttribute attach="attributes-color" args={[buffers.lineColors,3]} /></bufferGeometry><lineBasicMaterial vertexColors transparent opacity={.85} depthWrite={false} blending={THREE.AdditiveBlending} /></lineSegments>
     {effects && !low && <points ref={glow} frustumCulled={false}><bufferGeometry><bufferAttribute attach="attributes-position" args={[buffers.points,3]} /><bufferAttribute attach="attributes-color" args={[buffers.colors,3]} /><bufferAttribute attach="attributes-size" args={[buffers.sizes,1]} /></bufferGeometry><shaderMaterial transparent depthWrite={false} blending={THREE.AdditiveBlending} vertexColors vertexShader={`attribute float size; varying vec3 vColor; void main(){ vColor=color; vec4 mv=modelViewMatrix*vec4(position,1.0); gl_PointSize=min(110.0,size*7.0/-mv.z); gl_Position=projectionMatrix*mv; }`} fragmentShader={`varying vec3 vColor; void main(){float d=length(gl_PointCoord-vec2(.5));float a=exp(-d*d*19.0)*.42;if(d>.5)discard;gl_FragColor=vec4(vColor,a);}`} /></points>}
-    {effects && !low && view.selected && <points ref={pulse} frustumCulled={false}><bufferGeometry><bufferAttribute attach="attributes-position" args={[buffers.pulses,3]} /></bufferGeometry><pointsMaterial color="#befff1" size={.035} transparent opacity={.8} depthWrite={false} blending={THREE.AdditiveBlending} /></points>}
+    {effects && !low && view.selected && <points ref={pulse} frustumCulled={false}><bufferGeometry><bufferAttribute attach="attributes-position" args={[buffers.pulses,3]} /></bufferGeometry><pointsMaterial color="#e5d4ff" size={.035} transparent opacity={.8} depthWrite={false} blending={THREE.AdditiveBlending} /></points>}
     {labels.map(node => <Html key={node.id} position={node.position} center distanceFactor={16} zIndexRange={[5,0]} style={{pointerEvents:'none'}}><span className={`neural-label ${node.hub ? 'hub-label' : ''}`} style={{color:node.color}}>{node.title.slice(0,44)}{node.hub && <small>{node.count} memórias</small>}</span></Html>)}
   </>
 })
@@ -174,5 +181,5 @@ const Objects = forwardRef<SceneHandle,Props>(function Objects(props,ref) {
 export const NeuralScene = forwardRef<SceneHandle,Props>(function NeuralScene(props,ref) {
   const [visible,setVisible] = useState(!document.hidden)
   useEffect(() => { const update = () => setVisible(!document.hidden); document.addEventListener('visibilitychange',update); return () => document.removeEventListener('visibilitychange',update) },[])
-  return <Canvas className="neural-canvas" camera={{position:[0,.5,18],fov:45,near:.1,far:100}} dpr={props.low ? 1 : [1,1.5]} gl={{antialias:!props.low,alpha:true,powerPreference:'high-performance'}} frameloop={visible ? 'always' : 'never'}><Objects {...props} ref={ref}/></Canvas>
+  return <Canvas className="neural-canvas" camera={{position:[0,.5,18],fov:45,near:.1,far:200}} dpr={props.low ? 1 : [1,1.5]} gl={{antialias:!props.low,alpha:true,powerPreference:'high-performance'}} frameloop={visible ? 'always' : 'never'}><Objects {...props} ref={ref}/></Canvas>
 })

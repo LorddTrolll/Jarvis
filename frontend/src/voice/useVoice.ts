@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { speechChunks } from './text'
 interface SpeechResult { isFinal: boolean; 0: { transcript: string } }
 interface Recognition extends EventTarget {
   lang: string; continuous: boolean; interimResults: boolean
@@ -17,9 +18,12 @@ export function useVoice(onText: (text: string) => void) {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
   const [voiceName, setVoiceName] = useState(() => localStorage.getItem('jarvis-voice') || '')
   const recognition = useRef<Recognition | null>(null)
+  const speechId = useRef(0)
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const callback = useRef(onText); callback.current = onText
   const constructor = (window as SpeechWindow).SpeechRecognition || (window as SpeechWindow).webkitSpeechRecognition
   const stop = useCallback(() => {
+    speechId.current++; utteranceRef.current = null
     const current = recognition.current
     recognition.current = null
     current?.abort(); window.speechSynthesis?.cancel()
@@ -63,15 +67,28 @@ export function useVoice(onText: (text: string) => void) {
     try { current.start(); setListening(true) } catch { setError('Não foi possível iniciar o microfone.'); recognition.current = null }
   }, [constructor, stop])
   const speak = useCallback((text: string) => {
-    if (!window.speechSynthesis) return
-    window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'pt-BR'; utterance.rate = 1.04
-    const preferred = voices.find(v => v.name === voiceName) || voices.find(v => v.lang === 'pt-BR')
-    if (preferred) utterance.voice = preferred
-    utterance.onstart = () => setSpeaking(true)
-    utterance.onend = utterance.onerror = () => setSpeaking(false)
-    window.speechSynthesis.speak(utterance)
-  }, [voices, voiceName])
-  return { listening, speaking, interim, error, start, stop, speak, supported: !!constructor, voices, voiceName, setVoiceName }
+    stop(); setError('')
+    const synth = window.speechSynthesis
+    if (!synth || !window.SpeechSynthesisUtterance) { setError('Leitura por voz indisponível neste navegador.'); return }
+    const id = ++speechId.current, chunks = speechChunks(text)
+    const available = synth.getVoices()
+    const preferred = available.find(v => v.name === voiceName) || available.find(v => v.lang === 'pt-BR') || available.find(v => v.lang.startsWith('pt'))
+    const next = (index: number) => {
+      if (speechId.current !== id) return
+      if (index >= chunks.length) { utteranceRef.current = null; setSpeaking(false); return }
+      const utterance = new SpeechSynthesisUtterance(chunks[index]); utteranceRef.current = utterance
+      utterance.lang = 'pt-BR'; utterance.rate = 1
+      if (preferred) utterance.voice = preferred
+      utterance.onstart = () => { if (speechId.current === id) setSpeaking(true) }
+      utterance.onend = () => next(index + 1)
+      utterance.onerror = event => {
+        if (speechId.current !== id) return
+        setSpeaking(false); utteranceRef.current = null
+        if (event.error !== 'canceled' && event.error !== 'interrupted') setError('Não foi possível reproduzir a voz. Escolha uma voz em português nas configurações e tente novamente.')
+      }
+      try { synth.speak(utterance) } catch { setSpeaking(false); setError('Não foi possível iniciar a fala do assistente.') }
+    }
+    synth.resume(); next(0)
+  }, [stop, voiceName])
+  return { listening, speaking, interim, error, start, stop, speak, supported: !!constructor, synthesisSupported: !!window.speechSynthesis, voices, voiceName, setVoiceName }
 }

@@ -1,6 +1,6 @@
 [project]
 name = "jarvis-ai-backend"
-version = "0.2.0"
+version = "0.3.0"
 description = "Assistente pessoal multimodal local"
 requires-python = ">=3.11"
 dependencies = [
@@ -15,6 +15,7 @@ dependencies = [
   "python-docx>=1.1,<2",
   "scikit-learn>=1.6,<2",
   "pillow>=11,<13",
+  "tzdata>=2025.1",
 ]
 
 [dependency-groups]

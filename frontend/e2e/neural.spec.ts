@@ -5,9 +5,11 @@ test.beforeEach(async({page})=>{
   await page.goto('/')
   await page.getByLabel('Senha do proprietário').fill('e2e-password')
   await page.getByRole('button',{name:'Entrar no meu espaço'}).click()
+  await page.getByRole('navigation').getByRole('button', { name: 'Memórias', exact:true }).click()
   await expect(page.getByTestId('neural-memory')).toBeVisible()
   await page.request.delete('/api/data',{headers:{'X-Jarvis-Confirm':'DELETE'}})
   await page.reload()
+  await page.getByRole('navigation').getByRole('button', { name: 'Memórias', exact:true }).click()
   await expect(page.getByTestId('neural-memory')).toBeVisible()
 })
 async function seed(page: import('@playwright/test').Page) {
@@ -28,12 +30,14 @@ test('memória real aparece por evento, abre conteúdo e restaura a hierarquia',
   await page.getByLabel('Pesquisar dentro do arquivo').fill('Roma')
   await expect(page.locator('.memory-content mark').first()).toContainText('Roma')
   await page.reload()
+  await page.getByRole('navigation').getByRole('button', { name: 'Memórias', exact:true }).click()
   await expect(page.getByRole('region',{name:'Leitor de memória'})).toContainText('organização política complexa')
   await page.getByRole('button',{name:'Voltar ao agrupamento'}).click()
   await expect(page.getByTestId('neural-stage')).toHaveAttribute('data-view','cluster')
   await page.getByRole('button',{name:'Voltar um nível',exact:true}).click()
   await expect(page.getByTestId('neural-stage')).toHaveAttribute('data-view','global')
   await page.reload()
+  await page.getByRole('navigation').getByRole('button', { name: 'Memórias', exact:true }).click()
   await expect(page.getByTestId('memory-'+document.node_id)).toBeVisible()
   expect(errors).toEqual([])
 })
@@ -116,5 +120,11 @@ test('cérebro funciona em tela pequena sem overflow horizontal',async({page})=>
   await page.setViewportSize({width:390,height:844})
   await seed(page)
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+  // O enquadramento anima até o centro dos nós reais, inclusive em uma tela estreita.
+  await expect.poll(async()=>{
+    const stage=await page.getByTestId('neural-stage').boundingBox()
+    const label=await page.locator('.hub-label').first().boundingBox()
+    return !!stage && !!label && label.x >= stage.x + 5 && label.x + label.width <= stage.x + stage.width - 5
+  }).toBe(true)
   await page.screenshot({path:'test-results/neural-mobile.png',animations:'disabled'})
 })

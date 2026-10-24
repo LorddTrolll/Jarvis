@@ -22,6 +22,7 @@ from .database import Audit, Document, Draft, Message, Search, Task, initialize,
 from .schemas import Approval, ChatInput, DraftCreate, Login, Query, TaskCreate, TaskUpdate
 from .memory import store as memory
 from .memory.api import ingest, router as neural_router
+from .environment import EnvironmentService, router as environment_router
 from .memory.models import (Conversation, DocumentChunk, DocumentOriginal, MemoryEdge, MemoryNode,
                             MemorySuppression, MessageConversation)
 
@@ -44,6 +45,7 @@ def create_app(settings: Settings | None = None):
     approvals = {}
     limits = defaultdict(deque)
     chat_lock = asyncio.Lock()
+    environment = EnvironmentService()
 
     @asynccontextmanager
     async def lifespan(app):
@@ -58,9 +60,10 @@ def create_app(settings: Settings | None = None):
         yield
         engine.dispose()
 
-    app = FastAPI(title="JARVIS AI", version="0.2.0", lifespan=lifespan)
+    app = FastAPI(title="JARVIS AI", version="0.3.0", lifespan=lifespan)
     app.state.sessions = sessions
     app.state.settings = settings
+    app.state.environment = environment
     app.add_middleware(CORSMiddleware, allow_origins=list(settings.origins), allow_credentials=True,
                        allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"], allow_headers=["Content-Type", "X-Jarvis-Confirm"])
 
@@ -88,7 +91,7 @@ def create_app(settings: Settings | None = None):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Frame-Options"] = "DENY"
-        response.headers["Permissions-Policy"] = "camera=(self), microphone=(self)"
+        response.headers["Permissions-Policy"] = "camera=(self), microphone=(self), geolocation=(self)"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; "
             "img-src 'self' data: blob:; connect-src 'self' ws://localhost:5173 ws://127.0.0.1:5173; "
@@ -116,10 +119,11 @@ def create_app(settings: Settings | None = None):
 
     auth = [Depends(authenticate)]
     app.include_router(neural_router(database, authenticate, sessions, chat_lock))
+    app.include_router(environment_router(environment, authenticate))
 
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "version": "0.2.0"}
+        return {"status": "ok", "version": "0.3.0"}
 
     @app.get("/api/session")
     def session_status(request: Request):
@@ -172,7 +176,7 @@ def create_app(settings: Settings | None = None):
                 with sessions() as db:
                     try:
                         async for event in ai.conversation(settings, db, body.text, body.allow_documents,
-                                                          body.temporary, body.temporary_history):
+                                                          body.temporary, body.temporary_history, body.environment, environment):
                             yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
                     except asyncio.CancelledError:
                         db.rollback()

@@ -1,6 +1,6 @@
 # Cérebro neural — versão 0.2
 
-O painel **CÉREBRO NEURAL** é a nova tela inicial. O cenário usa Three.js, React Three Fiber e Drei para desenhar esferas instanciadas em profundidade real, conexões, brilho e pulsos. Ele lê o banco local do Jarvis: não depende de um array de memórias fictícias no navegador.
+O painel **Memórias** abre o cérebro 3D pelo menu lateral. Desde a versão 0.3, **Início** é a tela inicial e as categorias ficam recolhidas em **Tipos de memória**. O cenário usa Three.js, React Three Fiber e Drei para desenhar esferas instanciadas em profundidade real, conexões, brilho e pulsos. Ele lê o banco local do Jarvis: não depende de um array de memórias fictícias no navegador.
 
 As esferas grandes identificam categorias e exibem seus totais. As esferas menores representam registros reais. Conexões radiais de categoria significam somente que um registro é daquele tipo; as demais relações têm justificativa no inspetor. Não interprete uma relação calculada como comprovação de um fato.
 

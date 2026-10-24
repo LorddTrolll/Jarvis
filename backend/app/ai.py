@@ -2,6 +2,8 @@
 import json
 import re
 import unicodedata
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 from openai import AsyncOpenAI, OpenAIError
@@ -94,10 +96,41 @@ def normalize(text):
     return "".join(c for c in unicodedata.normalize("NFD", text.casefold()) if not unicodedata.combining(c)).strip()
 
 
-async def local_command(text, settings, db):
+async def local_command(text, settings, db, environment=None, environment_service=None):
     """Comandos locais determinísticos funcionam sem fingir uma resposta de um LLM."""
     text = re.sub(r"^jarvis[,!:. ]*", "", text.strip(), flags=re.I)
     value = normalize(text).rstrip(" .!?")
+    value = re.sub(r"^(?:me diga|me fale|pode me dizer)\s+", "", value)
+    if re.fullmatch(r"(?:oi|ola|bom dia|boa tarde|boa noite)", value):
+        return {"text": "Olá! Estou aqui para ajudar. Posso informar hora, data e clima, organizar suas tarefas e abrir suas memórias. Para conversar sobre qualquer assunto, configure o provedor de IA em Configurações.",
+                "event": {"action": "greeting"}}
+    clock = re.fullmatch(r"(?:que horas sao|qual (?:e )?(?:a )?hora(?: atual)?|(?:a )?hora|horas)", value)
+    date = re.fullmatch(r"(?:que dia e hoje|qual (?:e )?(?:a )?data(?: de hoje)?|data de hoje)", value)
+    weather = re.fullmatch(r"(?:(?:como|qual) (?:esta|e) (?:o )?(?:tempo|clima)(?: (?:aqui|agora|hoje))?|(?:tempo|clima)(?: (?:aqui|agora|hoje))?)", value)
+    location = re.fullmatch(r"(?:onde (?:eu )?estou|qual (?:e )?(?:a )?minha (?:cidade|localizacao))", value)
+    if clock or date:
+        if not environment:
+            return {"text": "Abra o Jarvis no navegador para informar seu fuso horário.", "event": {"action": "environment"}}
+        current = datetime.now(ZoneInfo(environment.timezone))
+        weekdays = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
+        months = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+        answer = (f"São {current.hour} horas e {current.minute} minutos, no fuso {environment.timezone}." if clock else
+                  f"Hoje é {weekdays[current.weekday()]}, {current.day} de {months[current.month - 1]} de {current.year}.")
+        return {"text": answer, "event": {"action": "environment"}}
+    if weather or location:
+        if not environment or not environment.place:
+            return {"text": "Escolha sua cidade em Localização ou use o botão de localização com sua permissão.", "event": {"action": "open_location"}}
+        place = environment.place
+        if location:
+            return {"text": f"A localização selecionada é {place.name}.", "event": {"action": "environment"}}
+        try:
+            conditions = await environment_service.weather(place.latitude, place.longitude)
+            answer = (f"Em {place.name}, {conditions['description'].lower()}, com {conditions['temperature']:g} graus Celsius. "
+                      f"Sensação térmica de {conditions['feels_like']:g} graus. "
+                      f"Mínima de {conditions['low']:g} e máxima de {conditions['high']:g} graus hoje. Fonte: Open-Meteo.")
+        except HTTPException:
+            answer = "Não consegui consultar o clima agora. Verifique sua conexão e tente novamente."
+        return {"text": answer, "event": {"action": "environment"}}
     if re.fullmatch(r"(?:volte|voltar|retorne) (?:para |ao )?(?:o )?cerebro (?:inteiro|completo)", value):
         return {"text": "Voltando ao cérebro completo.", "event": {"action": "neural_global"}}
     if re.fullmatch(r"(?:expanda|expandir) (?:esse |este |o )?neuronio", value):
@@ -124,7 +157,7 @@ async def local_command(text, settings, db):
     return None
 
 
-async def conversation(settings, db, text, allow_documents, temporary=False, temporary_history=None):
+async def conversation(settings, db, text, allow_documents, temporary=False, temporary_history=None, environment=None, environment_service=None):
     question_node = None
     sources = []
     if not temporary:
@@ -133,7 +166,7 @@ async def conversation(settings, db, text, allow_documents, temporary=False, tem
         question_node = memory.capture_message(db, user_message)
         db.commit()
     try:
-        local = await local_command(text, settings, db)
+        local = await local_command(text, settings, db, environment, environment_service)
     except ValidationError:
         local = {"text": "Para criar uma tarefa, informe um título entre 1 e 300 caracteres.",
                  "event": {"action": "validation_error"}}
