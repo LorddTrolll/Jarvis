@@ -1,13 +1,20 @@
 [project]
 name = "jarvis-ai-backend"
-version = "0.1.0"
+version = "0.2.0"
 description = "Assistente pessoal multimodal local"
 requires-python = ">=3.11"
 dependencies = [
-  "fastapi>=0.115,<1", "uvicorn[standard]>=0.34,<1",
-  "sqlalchemy>=2.0,<3", "pydantic-settings>=2.8,<3",
-  "python-multipart>=0.0.20,<1", "openai>=1.75,<3",
-  "httpx>=0.28,<1", "pypdf>=6.0,<7", "python-docx>=1.1,<2",
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.34,<1",
+  "sqlalchemy>=2.0,<3",
+  "pydantic-settings>=2.8,<3",
+  "python-multipart>=0.0.20,<1",
+  "openai>=1.75,<3",
+  "httpx>=0.28,<1",
+  "pypdf>=6.0,<7",
+  "python-docx>=1.1,<2",
+  "scikit-learn>=1.6,<2",
+  "pillow>=11,<13",
 ]
 
 [dependency-groups]

@@ -35,7 +35,7 @@ def search_documents(db, query: str):
 def extract_document(name: str, raw: bytes) -> str:
     extension = name.rsplit(".", 1)[-1].lower()
     try:
-        if extension == "txt":
+        if extension in ("txt", "md"):
             text = raw.decode("utf-8-sig")
         elif extension == "pdf":
             from pypdf import PdfReader
@@ -64,7 +64,7 @@ def extract_document(name: str, raw: bytes) -> str:
     return text
 
 
-async def web_search(settings, db, query: str):
+async def web_search(settings, db, query: str, persist=True):
     if not settings.search_key:
         raise HTTPException(503, "Busca não configurada. Adicione JARVIS_SEARCH_KEY no backend (Brave Search).")
     try:
@@ -82,8 +82,10 @@ async def web_search(settings, db, query: str):
                 continue
             results.append({"title": r.get("title", "Sem título"), "url": url,
                             "description": r.get("description", ""), "age": r.get("age")})
-        db.add(Search(query=query, result=json.dumps(results, ensure_ascii=False)))
-        db.commit()
+        if persist:
+            from .memory.store import capture_search
+            record = Search(query=query, result=json.dumps(results, ensure_ascii=False))
+            db.add(record); db.flush(); capture_search(db, record); db.commit()
         return {"query": query, "provider": "Brave Search", "results": results}
     except (httpx.HTTPError, ValueError, TypeError):
         raise HTTPException(502, "O provedor de busca falhou. Verifique acesso, chave e cota no backend.")

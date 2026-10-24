@@ -34,6 +34,13 @@ class TaskUpdate(BaseModel):
 class ChatInput(BaseModel):
     text: str = Field(min_length=1, max_length=8000)
     allow_documents: bool = False
+    temporary: bool = False
+    temporary_history: list["HistoryMessage"] = Field(default_factory=list, max_length=24)
+
+
+class HistoryMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(max_length=8000)
 
 
 class Query(BaseModel):
@@ -51,4 +58,4 @@ class Approval(BaseModel):
 
 
 class Panel(BaseModel):
-    panel_name: Literal["dashboard", "chat", "vision", "tasks", "search", "files", "integrations", "settings"]
+    panel_name: Literal["dashboard", "neural", "chat", "vision", "tasks", "search", "files", "integrations", "settings"]

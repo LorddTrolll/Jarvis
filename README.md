@@ -1,27 +1,33 @@
-# JARVIS AI
+# JARVIS AI — Memória neural 3D
 
-Assistente pessoal em português brasileiro: texto, voz, rastreamento local de mãos e ferramentas com permissões explícitas. Esta é a primeira versão executável, com interface React/TypeScript e backend FastAPI/SQLite.
+Assistente pessoal em português brasileiro: texto, voz, rastreamento local de mãos e ferramentas com permissões explícitas. A versão 0.2 adiciona o cérebro 3D persistente à interface React/TypeScript e ao backend FastAPI/SQLite.
 
 Inspirado na experiência de [holo-gestures](https://github.com/zubair-trabzada/holo-gestures). O código e o design da interface são próprios; veja [recursos e licenças](THIRD_PARTY_NOTICES.md).
 
-![Dashboard real do JARVIS AI](docs/assets/dashboard.png)
+![Cérebro neural — teste visual com nós sintéticos identificado na interface](docs/assets/neural-memory.png)
+
+A imagem usa o modo de teste isolado. Na utilização normal, os nós representam seus dados persistentes.
 
 ## O que está disponível
 
 | Recurso | Estado nesta versão |
 | --- | --- |
-| Dashboard responsivo, navegação, estados e preferências | Implementado |
+| Cérebro 3D com memórias persistentes, agrupamentos e relações explicáveis | Implementado; nova tela inicial |
+| Pinça simples, dupla e reversa; mouse e teclado | Implementado; calibre e valide os gestos com sua webcam |
+| Dashboard responsivo, navegação, estados e preferências | Preservado |
 | Chat com histórico persistente e comandos locais | Implementado, funciona sem chave |
 | Conversa livre, streaming e ferramentas com SDK OpenAI | Implementado; requer chave e cota; contrato testado com provedor substituto |
 | Webcam, até duas mãos, 21 pontos por mão, cursor e pinça | MediaPipe real, pesos e WASM servidos localmente |
 | Gestos, suavização, histerese, debounce, cooldown e calibração | Implementado e testado; ajuste com sua webcam física |
 | Ditado pt-BR e leitura de respostas | Web Speech API; depende do navegador e suas permissões |
 | Tarefas, prioridades, prazos e alertas no painel | Implementado; sem alertas em segundo plano |
-| PDF, TXT UTF-8 e DOCX; busca e referências a trechos | Implementado, extração e busca local por termos |
+| PDF, TXT, MD, DOCX e originais; imagens e vídeos com prévia | Implementado; PDF.js e leitor com pesquisa |
+| Busca vetorial local no cérebro, por tipo e data | TF-IDF/LSA local; sem download de modelo |
+| Notas, projetos, conversa temporária e controle de salvamento | Implementado |
 | Pesquisa na internet com fontes e histórico | Adaptador Brave Search; requer chave |
 | Rascunhos e envio de mensagens Telegram | Bot API real; revisão e aprovação de uso único; requer token e chat autorizado |
 | Gmail, Calendar, WhatsApp Business, Instagram, Facebook, Discord, Slack, X, YouTube | Planejados, explicitamente identificados; sem conexão simulada |
-| Ativação contínua pela palavra “Jarvis”, OAuth, inbox unificada, posts e embeddings | Ainda não implementados |
+| Ativação contínua pela palavra “Jarvis”, OAuth, inbox unificada, posts e embeddings pré-treinados | Ainda não implementados |
 
 Não há resultados fictícios, contas conectadas fictícias nem envio automático pelo modelo. A aplicação não oferece shell ou controle irrestrito do computador.
 
@@ -98,11 +104,15 @@ Desconexão: remova a variável do adaptador e reinicie o backend; para revogaç
 2. No chat, experimente `abra tarefas`, `crie tarefa Revisar projeto` ou `Jarvis, desligue a câmera`. Com a OpenAI configurada, faça perguntas livres e solicite ferramentas.
 3. Para voz, clique no microfone, leia o aviso e conceda a permissão do navegador. O ditado encerra ao terminar a frase. O reconhecimento pode usar servidores do navegador; o Jarvis não grava áudio. Não há escuta contínua ou palavra de ativação.
 4. Para mãos, clique em **Ativar câmera**, abra a mão e aponte. Uma pinça curta seguida de soltura seleciona ações permitidas. Veja [o guia dos gestos](docs/GESTOS.md).
-5. Em **Arquivos**, importe documentos. A busca por termos é local e mostra documento, trecho e posição. O PDF precisa conter texto selecionável; OCR não está incluído. Limites: 10 MB/arquivo, 200 páginas em PDF e 500 mil caracteres extraídos.
-6. Para respostas da IA sobre arquivos, ative **Autorizar trechos dos arquivos nesta conversa com IA**. Somente então a ferramenta de busca em documentos é exposta ao modelo. Os trechos podem ser enviados à OpenAI; a autorização volta a desligado ao recarregar a página.
+5. Em **Arquivos**, importe documentos. A busca por termos é local e mostra documento, trecho e posição. No CÉREBRO NEURAL, a busca usa vetores locais e destaca resultados no cenário 3D. O PDF precisa conter texto selecionável; OCR não está incluído. Limites: 10 MB/arquivo, 200 páginas em PDF e 500 mil caracteres extraídos.
+6. Para respostas da IA sobre arquivos, ative **Autorizar trechos dos arquivos nesta conversa com IA**, ou **Permitir que a IA consulte minhas memórias** nas configurações do cérebro. Somente então a ferramenta de busca em documentos é exposta ao modelo. Os trechos podem ser enviados à OpenAI; a autorização volta a desligado ao recarregar a página.
 7. Em **Conexões**, prepare um rascunho Telegram, revise destinatário e conteúdo, marque sua autorização e confirme o envio. Uma resposta de sucesso só é exibida após confirmação da API. Se a entrega for incerta, consulte o Telegram antes de tentar novamente.
 
 **Interromper** desliga a câmera, cancela o ditado, a síntese de voz e a resposta em curso. `Esc` interrompe voz/resposta e fecha diálogos. Trocar de aba desliga câmera e voz. Ações de ferramentas já concluídas não são revertidas ao interromper a resposta.
+
+## Cérebro neural e atualização
+
+Leia [MEMORIA_NEURAL.md](docs/MEMORIA_NEURAL.md) para gestos, busca local, privacidade, originais e atualização no Windows preservando `data` e `.env`. A migração mantém os dados anteriores e cria backup local. Documentos antigos continuam com texto extraído; reimporte para recuperar o original.
 
 ## Docker
 
@@ -134,7 +144,7 @@ npm run test:e2e
 
 Os testes de navegador iniciam servidores nas portas 5173/8000; mantenha-as livres. O runner usa banco temporário separado e câmera sintética do Chromium. Para usar um Chromium existente no Linux, defina `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium`.
 
-As chaves dos testes são valores de teste e os transportes externos são substituídos. **Esses testes não equivalem a autenticar ou enviar mensagens por uma conta real.** Os detalhes e limitações da validação estão em [VALIDACAO.md](docs/VALIDACAO.md).
+As chaves dos testes são valores de teste e os transportes externos são substituídos. **Esses testes não equivalem a autenticar ou enviar mensagens por uma conta real.** Os resultados da versão neural e as métricas estão em [VALIDACAO_NEURAL.md](docs/VALIDACAO_NEURAL.md). A validação histórica da base está em [VALIDACAO.md](docs/VALIDACAO.md).
 
 Para atualizar as dependências Python intencionalmente, use `uv lock --project backend` e regenere ambos os arquivos `requirements*.lock` com `uv export --frozen --no-emit-project` (sem dev para runtime, `--all-groups` para desenvolvimento). Não edite hashes manualmente.
 
@@ -145,4 +155,4 @@ Para atualizar as dependências Python intencionalmente, use `uv lock --project 
 - [Validação e pendências](docs/VALIDACAO.md)
 - [Roteiro das próximas versões](docs/ROADMAP.md)
 
-Próximas evoluções: validar ergonomia com sua câmera/microfone reais, configurar os provedores, adicionar um conector OAuth por vez, melhorar a busca com embeddings locais e implementar agenda conectada. Não exponha esta versão como um serviço público sem revisão de implantação e autenticação.
+Próximas evoluções: validar ergonomia com sua câmera/microfone reais, configurar os provedores, adicionar um conector OAuth por vez, evoluir a busca local para embeddings pré-treinados opcionais e implementar agenda conectada. Não exponha esta versão como um serviço público sem revisão de implantação e autenticação.

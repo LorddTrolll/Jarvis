@@ -4,9 +4,13 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await page.getByLabel('Senha do proprietário').fill('e2e-password')
   await page.getByRole('button', { name: 'Entrar no meu espaço' }).click()
+  await expect(page.getByTestId('neural-memory')).toBeVisible()
+  await page.getByRole('navigation').getByRole('button', { name: 'Centro de comando' }).click()
   await expect(page.getByRole('heading', { name: 'Tudo começa com uma ideia.' })).toBeVisible()
   await page.request.delete('/api/data', { headers: { 'X-Jarvis-Confirm': 'DELETE' } })
   await page.reload()
+  await expect(page.getByTestId('neural-memory')).toBeVisible()
+  await page.getByRole('navigation').getByRole('button', { name: 'Centro de comando' }).click()
   await expect(page.getByRole('heading', { name: 'Tudo começa com uma ideia.' })).toBeVisible()
 })
 

@@ -1,7 +1,7 @@
 export interface Point { x: number; y: number; z?: number }
 export type Gesture = 'open' | 'fist' | 'point' | 'pinch' | 'peace' | 'thumbs_up' | 'unknown'
 export type GestureAction = 'click' | 'drag_start' | 'drag' | 'drag_end' | 'pause' | 'tools' | 'confirm' | 'home' | 'next' | 'previous' | 'scroll_up' | 'scroll_down'
-export interface GestureFrame { gesture: Gesture; active: boolean; cursor: Point | null; actions: GestureAction[]; hands: number }
+export interface GestureFrame { gesture: Gesture; active: boolean; cursor: Point | null; actions: GestureAction[]; hands: number; measurement?: { ratio: number; tip: Point; scale: number } }
 export interface GestureConfig { pinchThreshold: number; holdMs: number; cooldownMs: number; smoothing: number; confidence: number; delegate: 'CPU' | 'GPU' }
 export const DEFAULT_CONFIG: GestureConfig = { pinchThreshold: 0.28, holdMs: 180, cooldownMs: 1000, smoothing: 0.3, confidence: 0.65, delegate: 'CPU' }
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
@@ -95,6 +95,8 @@ export class GestureEngine {
         emit(dy > 0 ? 'scroll_down' : 'scroll_up'); this.motionOrigin = null
       }
     } else this.motionOrigin = null
-    return { gesture, active: this.active, cursor: this.active ? this.cursor : null, actions, hands: hands.length }
+    const scale = Math.max(.001, distance(hand[5], hand[17]))
+    return { gesture, active: this.active, cursor: this.active ? this.cursor : null, actions, hands: hands.length,
+      measurement: { ratio: distance(hand[4], hand[8]) / scale, tip: { ...raw, z: hand[8].z }, scale } }
   }
 }

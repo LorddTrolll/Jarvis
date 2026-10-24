@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     telegram_token: str = ""
     history_days: int = Field(default=30, ge=1, le=3650)
     api_rate_per_minute: int = Field(default=300, ge=30, le=3000)
+    login_rate_per_minute: int = Field(default=10, ge=1, le=100)
 
     @property
     def origins(self) -> set[str]:

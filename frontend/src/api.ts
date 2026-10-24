@@ -15,9 +15,9 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   return response.json() as Promise<T>
 }
 
-export async function chatStream(text: string, allow_documents: boolean, onEvent: (event: StreamEvent) => void, signal: AbortSignal) {
+export async function chatStream(text: string, allow_documents: boolean, onEvent: (event: StreamEvent) => void, signal: AbortSignal, options: { temporary?: boolean; temporary_history?: { role: string; content: string }[] } = {}) {
   const response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, allow_documents }), signal })
+    body: JSON.stringify({ text, allow_documents, ...options }), signal })
   if (!response.ok || !response.body) {
     if (response.status === 401) window.dispatchEvent(new Event('jarvis-session-expired'))
     const data = await response.json().catch(() => null)

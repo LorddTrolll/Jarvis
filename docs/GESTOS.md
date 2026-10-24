@@ -35,3 +35,7 @@ Em **Visão e gestos**, ajuste a sensibilidade da pinça, a suavização e o pai
 CPU é o padrão para compatibilidade. Há opção experimental de GPU; desligue e reative a câmera após mudar. O loop limita inferências a 15 FPS para reservar tempo de interação e não redimensiona o canvas a cada frame. O FPS exibido mede as inferências efetivas, não a taxa nominal da câmera.
 
 Os limiares são heurísticas iniciais. Os testes incluem quadros sintéticos e marcos de referência do MediaPipe para positivo e dois dedos. Uma câmera sintética valida inicialização e inferência sem mãos; a ergonomia com diferentes mãos e webcams exige teste físico.
+
+## Gestos no cérebro neural
+
+O CÉREBRO NEURAL usa uma máquina temporal própria: pinça expande, duas pinças abrem e abertura intencional retorna. A soltura comum não provoca retorno. Veja [MEMORIA_NEURAL.md](MEMORIA_NEURAL.md) para o procedimento, calibração e controles por mouse/teclado. Os gestos originais continuam disponíveis nos outros painéis.

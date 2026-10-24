@@ -20,6 +20,10 @@ from . import ai, services
 from .config import Settings
 from .database import Audit, Document, Draft, Message, Search, Task, initialize, now
 from .schemas import Approval, ChatInput, DraftCreate, Login, Query, TaskCreate, TaskUpdate
+from .memory import store as memory
+from .memory.api import ingest, router as neural_router
+from .memory.models import (Conversation, DocumentChunk, DocumentOriginal, MemoryEdge, MemoryNode,
+                            MemorySuppression, MessageConversation)
 
 log = logging.getLogger("jarvis")
 if not log.handlers:
@@ -50,14 +54,15 @@ def create_app(settings: Settings | None = None):
             # Não reenvia automaticamente uma operação interrompida.
             db.execute(update(Draft).where(Draft.state == "sending").values(state="uncertain"))
             db.commit()
+            memory.bootstrap(db)
         yield
         engine.dispose()
 
-    app = FastAPI(title="JARVIS AI", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="JARVIS AI", version="0.2.0", lifespan=lifespan)
     app.state.sessions = sessions
     app.state.settings = settings
     app.add_middleware(CORSMiddleware, allow_origins=list(settings.origins), allow_credentials=True,
-                       allow_methods=["GET", "POST", "PATCH", "DELETE"], allow_headers=["Content-Type", "X-Jarvis-Confirm"])
+                       allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"], allow_headers=["Content-Type", "X-Jarvis-Confirm"])
 
     @app.middleware("http")
     async def protection(request: Request, call_next):
@@ -68,7 +73,7 @@ def create_app(settings: Settings | None = None):
             timestamp = time.monotonic()
             while bucket and bucket[0] < timestamp - 60:
                 bucket.popleft()
-            maximum = 10 if bucket_key[1] == "login" else settings.api_rate_per_minute
+            maximum = settings.login_rate_per_minute if bucket_key[1] == "login" else settings.api_rate_per_minute
             if len(bucket) >= maximum:
                 return Response('Confirme o limite de requisições e tente em um minuto.', status_code=429)
             bucket.append(timestamp)
@@ -87,7 +92,7 @@ def create_app(settings: Settings | None = None):
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; "
             "img-src 'self' data: blob:; connect-src 'self' ws://localhost:5173 ws://127.0.0.1:5173; "
-            "worker-src 'self' blob:; media-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
+            "worker-src 'self' blob:; font-src 'self' data: blob:; media-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
         if request.url.path.startswith("/api"):
             response.headers["Cache-Control"] = "no-store"
         return response
@@ -110,10 +115,11 @@ def create_app(settings: Settings | None = None):
         log.info(json.dumps({"event": action, "detail": detail}, ensure_ascii=False))
 
     auth = [Depends(authenticate)]
+    app.include_router(neural_router(database, authenticate, sessions, chat_lock))
 
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "version": "0.1.0"}
+        return {"status": "ok", "version": "0.2.0"}
 
     @app.get("/api/session")
     def session_status(request: Request):
@@ -165,7 +171,8 @@ def create_app(settings: Settings | None = None):
             async with chat_lock:
                 with sessions() as db:
                     try:
-                        async for event in ai.conversation(settings, db, body.text, body.allow_documents):
+                        async for event in ai.conversation(settings, db, body.text, body.allow_documents,
+                                                          body.temporary, body.temporary_history):
                             yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
                     except asyncio.CancelledError:
                         db.rollback()
@@ -215,11 +222,19 @@ def create_app(settings: Settings | None = None):
             if len(raw) > 10_000_000:
                 raise HTTPException(413, "O limite é 10 MB por arquivo.")
         name = Path((file.filename or "arquivo").replace("\\", "/")).name[:255]
-        text = await asyncio.to_thread(services.extract_document, name, bytes(raw))
-        doc = Document(name=name, content=text)
-        db.add(doc)
-        db.commit()
-        return {"id": doc.id, "name": doc.name, "characters": len(text)}
+        return await asyncio.to_thread(ingest, db, name, bytes(raw), services.extract_document)
+
+    @app.get("/api/documents/{document_id}/original", dependencies=auth)
+    def original(document_id: int, download: bool = False, db=Depends(database)):
+        from urllib.parse import quote
+        file = db.get(DocumentOriginal, document_id)
+        doc = db.get(Document, document_id)
+        if not file or not doc:
+            raise HTTPException(404, "Original indisponível. Reimporte o documento criado na versão anterior.")
+        disposition = "attachment" if download else "inline"
+        return Response(file.data, media_type=file.mime, headers={
+            "Content-Disposition": f"{disposition}; filename*=UTF-8''{quote(doc.name, safe='')}",
+            "Accept-Ranges": "none"})
 
     @app.post("/api/documents/search", dependencies=auth)
     def find_documents(body: Query, db=Depends(database)):
@@ -230,6 +245,7 @@ def create_app(settings: Settings | None = None):
         doc = db.get(Document, document_id)
         if not doc:
             raise HTTPException(404, "Documento não encontrado.")
+        memory.remove_document(db, document_id)
         db.delete(doc)
         audit(db, "document_deleted", str(document_id))
         return {"ok": True}
@@ -307,8 +323,11 @@ def create_app(settings: Settings | None = None):
             raise HTTPException(409, "Interrompa a resposta antes de excluir dados.")
         if db.scalar(select(Draft.id).where(Draft.state == "sending").limit(1)):
             raise HTTPException(409, "Aguarde a conclusão do envio antes de excluir dados.")
-        for model in (Message, Task, Document, Draft, Search, Audit):
+        for model in (MemoryEdge, MemoryNode, MemorySuppression, MessageConversation, Conversation,
+                      DocumentChunk, DocumentOriginal, Message, Task, Document, Draft, Search, Audit):
             db.execute(delete(model))
+        memory.touch(db)
+        memory.state(db).view = "{}"
         db.commit()
         approvals.clear()
         return {"ok": True}

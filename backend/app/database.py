@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Boolean, DateTime, Integer, String, Text, create_engine
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, create_engine, event, inspect
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from sqlalchemy.types import TypeDecorator
 
@@ -84,5 +84,18 @@ class Search(Base):
 def initialize(settings):
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     engine = create_engine(f"sqlite:///{settings.data_dir / 'jarvis.db'}", connect_args={"check_same_thread": False})
+    @event.listens_for(engine, "connect")
+    def sqlite_settings(connection, _):
+        connection.execute("PRAGMA foreign_keys=ON")
+        connection.execute("PRAGMA busy_timeout=10000")
+        connection.execute("PRAGMA journal_mode=WAL")
+    # Migração aditiva; preserva o banco anterior em backup local uma única vez.
+    from .memory import models  # noqa: F401 — registra novas tabelas no metadata
+    if inspect(engine).has_table("documents") and not inspect(engine).has_table("memory_state"):
+        import sqlite3
+        backups = settings.data_dir / "backups"
+        backups.mkdir(exist_ok=True)
+        with sqlite3.connect(settings.data_dir / "jarvis.db") as original, sqlite3.connect(backups / "before-neural-v1.db") as backup:
+            original.backup(backup)
     Base.metadata.create_all(engine)
     return engine, sessionmaker(engine, expire_on_commit=False)
