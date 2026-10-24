@@ -4,5 +4,6 @@ import App from './App'
 import './styles.css'
 import './neural/neural.css'
 import './theme.css'
+import './immersive/hud.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>)

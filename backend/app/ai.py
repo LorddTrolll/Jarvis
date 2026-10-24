@@ -101,6 +101,26 @@ async def local_command(text, settings, db, environment=None, environment_servic
     text = re.sub(r"^jarvis[,!:. ]*", "", text.strip(), flags=re.I)
     value = normalize(text).rstrip(" .!?")
     value = re.sub(r"^(?:me diga|me fale|pode me dizer)\s+", "", value)
+    if value in {"bom dia", "boa tarde", "boa noite", "resumo do dia", "meu dia"}:
+        current = datetime.now(ZoneInfo(environment.timezone if environment else "UTC"))
+        pending = list(db.scalars(select(Task).where(Task.done.is_(False)).order_by(Task.id)))
+        priority = [task for task in pending if task.priority == "alta"]
+        greeting = value.capitalize() if value.startswith(("bom ", "boa ")) else "Aqui está seu resumo"
+        parts = [f"{greeting}. São {current.hour} horas e {current.minute} minutos.",
+                 f"Você tem {len(pending)} tarefa(s) pendente(s) na agenda local." if pending else "Sua agenda local não tem tarefas pendentes."]
+        if priority:
+            parts.append("Prioridades: " + "; ".join(task.title for task in priority[:3]) + ".")
+        elif pending:
+            parts.append("Próximos passos: " + "; ".join(task.title for task in pending[:3]) + ".")
+        if environment and environment.place and environment_service:
+            try:
+                weather = await environment_service.weather(environment.place.latitude, environment.place.longitude)
+                parts.append(f"Em {environment.place.name}, {weather['description'].lower()}, com {weather['temperature']:g} graus Celsius. Fonte: Open-Meteo.")
+            except HTTPException:
+                parts.append("O clima está indisponível no momento.")
+        else:
+            parts.append("Escolha uma localização para incluir o clima no resumo.")
+        return {"text": " ".join(parts), "event": {"action": "daily_briefing"}}
     if re.fullmatch(r"(?:oi|ola|bom dia|boa tarde|boa noite)", value):
         return {"text": "Olá! Estou aqui para ajudar. Posso informar hora, data e clima, organizar suas tarefas e abrir suas memórias. Para conversar sobre qualquer assunto, configure o provedor de IA em Configurações.",
                 "event": {"action": "greeting"}}

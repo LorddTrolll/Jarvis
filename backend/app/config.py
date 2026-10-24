@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="JARVIS_", env_file=".env", extra="ignore")
     data_dir: Path = Path("data")
     password: str = ""
+    # Capacidade efêmera criada apenas pelo iniciador local; nunca vai para .env.
+    desktop_token: str = ""
     cookie_secure: bool = False
     allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000,http://localhost:8080,http://127.0.0.1:8080"
     openai_key: str = ""

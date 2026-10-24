@@ -2,9 +2,7 @@ import { expect, test } from '@playwright/test'
 import { writeFile } from 'node:fs/promises'
 
 test.beforeEach(async({page})=>{
-  await page.goto('/')
-  await page.getByLabel('Senha do proprietário').fill('e2e-password')
-  await page.getByRole('button',{name:'Entrar no meu espaço'}).click()
+  await page.goto('/#desktop=e2e-desktop-bootstrap-only')
   await page.getByRole('navigation').getByRole('button', { name: 'Memórias', exact:true }).click()
   await expect(page.getByTestId('neural-memory')).toBeVisible()
   await page.request.delete('/api/data',{headers:{'X-Jarvis-Confirm':'DELETE'}})

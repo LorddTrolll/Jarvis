@@ -9,3 +9,5 @@ MediaPipe Tasks Vision e WASM: Google, Apache-2.0. Consulte [a licença](https:/
 Os marcos de regressão em `frontend/src/gestures/reference-landmarks.json` foram extraídos dos arquivos `thumb_up_landmarks.pbtxt` e `victory_landmarks.pbtxt` de [MediaPipe testdata](https://github.com/google-ai-edge/mediapipe/tree/master/mediapipe/tasks/testdata/vision) (Google, Apache-2.0).
 
 Memória neural 3D: Three.js (MIT), React Three Fiber e Drei (MIT). Leitor de PDF: Mozilla PDF.js (`pdfjs-dist`, Apache-2.0). Vetores locais: scikit-learn (BSD-3-Clause), NumPy e SciPy (BSD-3-Clause). Verificação de imagens: Pillow (HPND e licenças de componentes). Consulte as licenças nas distribuições correspondentes. Nenhuma imagem da referência do usuário foi incorporada ao produto.
+
+Telemetria da máquina: psutil (BSD-3-Clause), conforme a licença fornecida em sua distribuição. O núcleo luminoso da versão 0.4 é desenhado em SVG pelo próprio aplicativo; não incorpora a imagem de referência ou um vídeo de terceiros.

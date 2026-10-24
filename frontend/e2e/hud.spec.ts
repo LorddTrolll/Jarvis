@@ -1,0 +1,42 @@
+import { expect, test } from '@playwright/test'
+
+test.beforeEach(async({page})=>{
+  await page.goto('/#desktop=e2e-desktop-bootstrap-only')
+  await expect(page.getByRole('heading',{name:'EM ESPERA',exact:true})).toBeVisible()
+  await page.request.delete('/api/data',{headers:{'X-Jarvis-Confirm':'DELETE'}})
+  await page.reload()
+  await expect(page.getByRole('heading',{name:'EM ESPERA',exact:true})).toBeVisible()
+})
+
+test('núcleo entra diretamente, apresenta resumo real e mantém serviços ao redor',async({page})=>{
+  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
+  expect(page.url()).not.toContain('desktop=')
+  await expect(page.getByLabel('Senha do proprietário')).not.toBeVisible()
+  await expect(page.locator('.sidebar,.profile,.avatar')).toHaveCount(0)
+  await expect(page.locator('.intelligence-core')).toBeVisible()
+  await expect(page.getByRole('navigation').getByRole('button',{name:'Memórias',exact:true})).toBeVisible()
+  const task=await page.request.post('/api/tasks',{data:{title:'Revisar apresentação',priority:'alta'}})
+  expect(task.status()).toBe(201)
+  await page.getByRole('button',{name:'Bom dia',exact:true}).click()
+  await expect(page.locator('.hud-answer')).toContainText('Revisar apresentação')
+  await expect(page.locator('.hud-answer')).toContainText('1 tarefa(s) pendente(s)')
+  await expect(page.locator('.hud-priorities')).toContainText('Revisar apresentação')
+  await expect(page.locator('.os-service-layer')).not.toBeVisible()
+  await expect.poll(async()=>page.getByLabel('Uso de memória').getAttribute('value')).not.toBeNull()
+  await page.getByRole('navigation').getByRole('button',{name:'Agenda e tarefas'}).click()
+  await expect(page.locator('.os-service-layer')).toContainText('Revisar apresentação')
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.os-service-layer')).not.toBeVisible()
+  await expect(page.locator('.intelligence-core')).toBeVisible()
+  expect(errors).toEqual([])
+})
+
+test('e-mail não conectado é explícito e notícias não simulam integração',async({page})=>{
+  await page.getByRole('button',{name:'E-mails',exact:true}).click()
+  await expect(page.getByRole('dialog')).toContainText('Nenhuma caixa de entrada é acessada')
+  await page.getByRole('button',{name:'Fechar diálogo'}).click()
+  await page.getByRole('button',{name:'Notícias',exact:true}).click()
+  await expect(page.getByLabel('Consulta de pesquisa')).toHaveValue('Principais notícias de hoje Brasil e mundo')
+  await expect(page.locator('.os-service-layer')).toContainText('Provedor não configurado')
+  await expect(page.locator('.search-results article')).toHaveCount(0)
+})

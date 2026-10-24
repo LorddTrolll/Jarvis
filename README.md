@@ -1,20 +1,23 @@
-# JARVIS AI — Memória neural 3D
+# JARVIS — núcleo pessoal com voz e gestos
 
-Assistente pessoal em português brasileiro: texto, voz, rastreamento local de mãos e ferramentas com permissões explícitas. A versão 0.3 traz uma interface roxa mais limpa, data/hora ao vivo, localização e clima real, além de respostas faladas acessíveis na tela inicial. O cérebro 3D persistente continua disponível em **Memórias**, com interface React/TypeScript e backend FastAPI/SQLite.
+A versão **0.4** traz o painel imersivo: núcleo animado ao centro, data/local/clima e métricas reais à esquerda, serviços à direita e comandos na base. Sem perfil, avatar ou cadastro. No Windows, **Iniciar Jarvis.bat** abre uma janela própria do Edge/Chrome e prepara a sessão local automaticamente. A paleta permanece roxa, com memórias 3D, voz e gestos.
 
-Inspirado na experiência de [holo-gestures](https://github.com/zubair-trabzada/holo-gestures). O código e o design da interface são próprios; veja [recursos e licenças](THIRD_PARTY_NOTICES.md).
+![Painel imersivo do Jarvis, sem dados demonstrativos](docs/assets/jarvis-hud.png)
 
-![Cérebro neural — teste visual com nós sintéticos identificado na interface](docs/assets/neural-memory.png)
+Leia [PAINEL_IMERSIVO.md](docs/PAINEL_IMERSIVO.md) para o iniciador, serviços, sessão local e limites das integrações. O sistema unifica o que já está implementado; e-mail e calendário externo ainda não têm conectores e aparecem com esse estado explícito.
 
-A imagem usa o modo de teste isolado. Na utilização normal, os nós representam seus dados persistentes.
+Inspirado na experiência de [holo-gestures](https://github.com/zubair-trabzada/holo-gestures) e na referência visual fornecida pelo proprietário. O código e o design da interface são próprios; veja [recursos e licenças](THIRD_PARTY_NOTICES.md).
 
 ## O que está disponível
 
 | Recurso | Estado nesta versão |
 | --- | --- |
-| Cérebro 3D com memórias persistentes, agrupamentos e relações explicáveis | Implementado; nova tela inicial |
+| Cérebro 3D com memórias persistentes, agrupamentos e relações explicáveis | Implementado; módulo Memórias |
 | Pinça simples, dupla e reversa; mouse e teclado | Implementado; calibre e valide os gestos com sua webcam |
-| Dashboard responsivo, navegação, estados e preferências | Preservado |
+| Painel imersivo, núcleo reativo e módulos sobrepostos | Implementado, sem interface de conta |
+| Janela local pelo iniciador Windows | Implementado com Edge/Chrome em modo aplicativo; abertura física no Windows ainda deve ser conferida |
+| CPU, memória e tráfego de rede | Métricas reais da máquina do backend, com psutil |
+| Resumo “bom dia” | Horário, agenda local, prioridades e clima disponível; sem chave de IA |
 | Chat com histórico persistente e comandos locais | Implementado, funciona sem chave |
 | Conversa livre, streaming e ferramentas com SDK OpenAI | Implementado; requer chave e cota; contrato testado com provedor substituto |
 | Webcam, até duas mãos, 21 pontos por mão, cursor e pinça | MediaPipe real, pesos e WASM servidos localmente |
@@ -33,19 +36,11 @@ Não há resultados fictícios, contas conectadas fictícias nem envio automáti
 
 ## Instalação no Windows
 
-Pré-requisitos: **Python 3.11+**, **Node.js 24.5+** (recomendado 24 LTS atualizado, inclui npm), Git e Chrome/Edge para o melhor suporte à voz. Abra o PowerShell na pasta em que deseja o projeto:
+Pré-requisitos: **Python 3.11+** e **Node.js 24.5+**, além de Chrome ou Edge. Baixe o ZIP do GitHub e extraia em uma pasta. Dê dois cliques em **Iniciar Jarvis.bat**: se a instalação estiver ausente, ele instala as dependências e gera os arquivos antes de abrir a janela do aplicativo.
 
-```powershell
-git clone https://github.com/LorddTrolll/Jarvis.git
-cd Jarvis
-Copy-Item .env.example .env
-py -3 scripts/setup.py
-py -3 scripts/dev.py
-```
+Para atualizar, encerre a versão anterior, extraia a nova em outra pasta e preserve `data` e `.env`. Não copie a instalação antiga ou o frontend compilado. As chaves são configuradas em `.env`; o instalador não substitui esse arquivo. Veja o [guia do painel](docs/PAINEL_IMERSIVO.md).
 
-Se os arquivos ainda estiverem apenas no ambiente de desenvolvimento, obtenha o código desta pasta antes de executar em outra máquina. O instalador cria `.venv`, instala dependências fixadas e verificadas por hashes, usa `npm ci`, baixa/verifica o modelo MediaPipe e gera o build. Não substitui seu `.env`.
-
-Abra o endereço exibido pelo Vite, na porta **5173** de `localhost`. O backend usa a porta **8000**. O comando de desenvolvimento inicia ambos em loopback; `Ctrl+C` encerra os dois.
+Para desenvolvimento com terminal, continuam disponíveis `py -3 scripts/setup.py` e `py -3 scripts/dev.py`. O último inicia Vite em 5173 e FastAPI em 8000; `Ctrl+C` encerra ambos. O iniciador do aplicativo usa o frontend compilado e prefere a porta 8765, sem Vite.
 
 ## Linux e macOS
 
@@ -102,16 +97,16 @@ Desconexão: remova a variável do adaptador e reinicie o backend; para revogaç
 
 ## Usar o Jarvis
 
-1. Entre no seu espaço. Sem senha, o acesso é limitado ao desenvolvimento em loopback.
+1. Abra o iniciador local: o núcleo aparece diretamente. Clique em **Bom dia** para ouvir/ler um resumo de tarefas e clima disponível. Em acesso protegido sem o iniciador, a chave de acesso continua necessária.
 2. No chat, experimente `abra tarefas`, `crie tarefa Revisar projeto` ou `Jarvis, desligue a câmera`. Com a OpenAI configurada, faça perguntas livres e solicite ferramentas.
-3. Em **Início**, clique em **Ativar respostas por voz** para ouvir o assistente; escolha a voz em Configurações. Para ditar, clique no microfone, leia o aviso e conceda a permissão do navegador. O ditado encerra ao terminar a frase. O reconhecimento pode usar servidores do navegador; o Jarvis não grava áudio. Não há escuta contínua ou palavra de ativação.
+3. No painel central, clique em **Ativar respostas por voz** para ouvir o assistente; escolha a voz em Configurações. Para ditar, clique no microfone, leia o aviso e conceda a permissão do navegador. O ditado encerra ao terminar a frase. O reconhecimento pode usar servidores do navegador; o Jarvis não grava áudio. Não há escuta contínua ou palavra de ativação.
 4. Para mãos, entre em **Visão e gestos** e clique em **Ativar câmera**, abra a mão e aponte. Uma pinça curta seguida de soltura seleciona ações permitidas. Veja [o guia dos gestos](docs/GESTOS.md).
 5. Em **Arquivos**, importe documentos. A busca por termos é local e mostra documento, trecho e posição. Em **Memórias**, a busca usa vetores locais e destaca resultados no cenário 3D. O PDF precisa conter texto selecionável; OCR não está incluído. Limites: 10 MB/arquivo, 200 páginas em PDF e 500 mil caracteres extraídos.
 6. Para respostas da IA sobre arquivos, ative **Autorizar trechos dos arquivos nesta conversa com IA**, ou **Permitir que a IA consulte minhas memórias** nas configurações do cérebro. Somente então a ferramenta de busca em documentos é exposta ao modelo. Os trechos podem ser enviados à OpenAI; a autorização volta a desligado ao recarregar a página.
 7. Clique em **Localização** para buscar uma cidade ou usar a posição aproximada com permissão. O relógio acompanha o fuso selecionado; o clima mostra fonte e horário. `Que horas são?`, `Que dia é hoje?`, `Como está o tempo?` e `Onde estou?` funcionam sem chave de IA; clima requer conexão.
 8. Em **Conexões**, prepare um rascunho Telegram, revise destinatário e conteúdo, marque sua autorização e confirme o envio. Uma resposta de sucesso só é exibida após confirmação da API. Se a entrega for incerta, consulte o Telegram antes de tentar novamente.
 
-**Interromper** desliga a câmera, cancela o ditado, a síntese de voz e a resposta em curso. `Esc` interrompe voz/resposta e fecha diálogos. Trocar de aba desliga câmera e voz. Ações de ferramentas já concluídas não são revertidas ao interromper a resposta.
+**Interromper** desliga a câmera, cancela o ditado, a síntese de voz e a resposta em curso. `Esc` interrompe voz/resposta e fecha diálogos ou o módulo atual. Trocar de aba desliga câmera e voz. Ações de ferramentas já concluídas não são revertidas ao interromper a resposta.
 
 ## Cérebro neural e atualização
 

@@ -1,13 +1,11 @@
 import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/')
-  await page.getByLabel('Senha do proprietário').fill('e2e-password')
-  await page.getByRole('button', { name: 'Entrar no meu espaço' }).click()
-  await expect(page.getByRole('heading', { name: 'Mais espaço para suas ideias.' })).toBeVisible()
+  await page.goto('/#desktop=e2e-desktop-bootstrap-only')
+  await expect(page.getByRole('heading', { name: 'EM ESPERA' })).toBeVisible()
   await page.request.delete('/api/data', { headers: { 'X-Jarvis-Confirm': 'DELETE' } })
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Mais espaço para suas ideias.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'EM ESPERA' })).toBeVisible()
 })
 
 test('tarefas, conversa, documentos e revisão sem falsos envios', async ({ page }) => {
@@ -86,7 +84,7 @@ test('pinça seleciona navegação real e não alcança ações sensíveis', asy
     return release.actions.includes('click') && release.cursor && clickFromGesture(release.cursor)
   }, { x: box.x + box.width / 2, y: box.y + box.height / 2 })
   expect(clicked).toBe(true)
-  await expect(page.getByRole('heading', { name: 'Espaço para o que importa.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Agenda' })).toBeVisible()
   await page.getByRole('navigation').getByRole('button', { name: 'Conexões', exact: true }).click()
   await page.getByLabel('ID numérico da conversa').fill('123456')
   await page.getByLabel('Mensagem', { exact: true }).fill('Rascunho para testar bloqueio de gestos.')
@@ -103,15 +101,14 @@ test('pinça seleciona navegação real e não alcança ações sensíveis', asy
 
 test('painel responsivo mantém navegação e controles acessíveis', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.getByRole('button', { name: 'Abrir menu' }).click()
   await page.getByRole('navigation').getByRole('button', { name: 'Visão e gestos' }).click()
-  await expect(page.getByRole('heading', { name: 'O controle está nas suas mãos.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Visão e gestos' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.screenshot({ path: 'test-results/jarvis-mobile.png', fullPage: true, animations: 'disabled' })
 })
 
 test('captura do dashboard sem dados demonstrativos', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 1100 })
+  await page.setViewportSize({ width: 1366, height: 768 })
   await page.screenshot({ path: 'test-results/jarvis-dashboard.png', fullPage: true, animations: 'disabled' })
 })
 
@@ -123,7 +120,7 @@ test('câmera negada informa erro e mantém o assistente disponível', async ({ 
   await page.getByRole('button', { name: 'Ativar câmera', exact: true }).click()
   await expect(page.getByRole('alert')).toContainText('Permissão de câmera negada')
   await expect(page.getByRole('button', { name: 'Ativar câmera', exact: true })).toBeVisible()
-  await page.getByRole('navigation').getByRole('button', { name: 'Início', exact:true }).click()
+  await page.getByRole('button', { name: 'Voltar ao núcleo', exact:true }).click()
   await page.getByRole('button', { name: 'Falar com Jarvis' }).click()
   await expect(page.getByRole('dialog')).toContainText('o áudio pode ser enviado')
   await page.getByRole('button', { name: 'Fechar diálogo' }).click()

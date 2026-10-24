@@ -23,6 +23,7 @@ from .schemas import Approval, ChatInput, DraftCreate, Login, Query, TaskCreate,
 from .memory import store as memory
 from .memory.api import ingest, router as neural_router
 from .environment import EnvironmentService, router as environment_router
+from .system import SystemMonitor
 from .memory.models import (Conversation, DocumentChunk, DocumentOriginal, MemoryEdge, MemoryNode,
                             MemorySuppression, MessageConversation)
 
@@ -46,6 +47,7 @@ def create_app(settings: Settings | None = None):
     limits = defaultdict(deque)
     chat_lock = asyncio.Lock()
     environment = EnvironmentService()
+    monitor = SystemMonitor()
 
     @asynccontextmanager
     async def lifespan(app):
@@ -60,7 +62,7 @@ def create_app(settings: Settings | None = None):
         yield
         engine.dispose()
 
-    app = FastAPI(title="JARVIS AI", version="0.3.0", lifespan=lifespan)
+    app = FastAPI(title="JARVIS AI", version="0.4.0", lifespan=lifespan)
     app.state.sessions = sessions
     app.state.settings = settings
     app.state.environment = environment
@@ -123,7 +125,10 @@ def create_app(settings: Settings | None = None):
 
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "version": "0.3.0"}
+        result = {"status": "ok", "version": "0.4.0"}
+        if settings.desktop_token:
+            result["desktop_instance"] = hashlib.sha256(settings.desktop_token.encode()).hexdigest()[:16]
+        return result
 
     @app.get("/api/session")
     def session_status(request: Request):
@@ -135,7 +140,9 @@ def create_app(settings: Settings | None = None):
         local = request.client and request.client.host in {"127.0.0.1", "::1", "testclient"}
         if not settings.password and not local:
             raise HTTPException(403, "Configure JARVIS_PASSWORD para acesso remoto.")
-        if not hmac.compare_digest(body.password.encode(), settings.password.encode()):
+        desktop = (request.client and request.client.host in {"127.0.0.1", "::1"} and bool(settings.desktop_token)
+                   and hmac.compare_digest(request.headers.get("X-Jarvis-Desktop", "").encode(), settings.desktop_token.encode()))
+        if not desktop and not hmac.compare_digest(body.password.encode(), settings.password.encode()):
             raise HTTPException(401, "Senha inválida.")
         timestamp = time.time()
         for key, expiry in list(browser_sessions.items()):
@@ -161,6 +168,10 @@ def create_app(settings: Settings | None = None):
         return {"ai_configured": bool(settings.openai_key), "ai_model": settings.openai_model,
                 "search_configured": bool(settings.search_key), "telegram_configured": bool(settings.telegram_token),
                 "storage": "SQLite local", "history_days": settings.history_days, "password_enabled": bool(settings.password)}
+
+    @app.get("/api/system", dependencies=auth)
+    def system_metrics():
+        return monitor.sample()
 
     @app.get("/api/messages", dependencies=auth)
     def messages(db=Depends(database)):
