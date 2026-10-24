@@ -68,7 +68,7 @@ def main():
             try:
                 with urlopen(address + "/api/health", timeout=1) as response:
                     health = json.load(response)
-                    if health.get("version") == "0.4.0" and health.get("desktop_instance") == hashlib.sha256(token.encode()).hexdigest()[:16]:
+                    if health.get("version") == "0.5.0" and health.get("desktop_instance") == hashlib.sha256(token.encode()).hexdigest()[:16]:
                         break
             except (OSError, URLError, ValueError):
                 pass

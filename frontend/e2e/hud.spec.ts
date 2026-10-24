@@ -13,7 +13,7 @@ test('núcleo entra diretamente, apresenta resumo real e mantém serviços ao re
   expect(page.url()).not.toContain('desktop=')
   await expect(page.getByLabel('Senha do proprietário')).not.toBeVisible()
   await expect(page.locator('.sidebar,.profile,.avatar')).toHaveCount(0)
-  await expect(page.locator('.intelligence-core')).toBeVisible()
+  await expect(page.getByTestId('neural-stage')).toBeVisible()
   await expect(page.getByRole('navigation').getByRole('button',{name:'Memórias',exact:true})).toBeVisible()
   const task=await page.request.post('/api/tasks',{data:{title:'Revisar apresentação',priority:'alta'}})
   expect(task.status()).toBe(201)
@@ -27,7 +27,7 @@ test('núcleo entra diretamente, apresenta resumo real e mantém serviços ao re
   await expect(page.locator('.os-service-layer')).toContainText('Revisar apresentação')
   await page.keyboard.press('Escape')
   await expect(page.locator('.os-service-layer')).not.toBeVisible()
-  await expect(page.locator('.intelligence-core')).toBeVisible()
+  await expect(page.getByTestId('neural-stage')).toBeVisible()
   expect(errors).toEqual([])
 })
 

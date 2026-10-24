@@ -109,6 +109,8 @@ test('painel responsivo mantém navegação e controles acessíveis', async ({ p
 
 test('captura do dashboard sem dados demonstrativos', async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 })
+  await expect(page.getByTestId('neural-stage')).toBeVisible()
+  await expect.poll(async()=>parseInt(await page.getByLabel('FPS do cenário').innerText())).toBeGreaterThan(0)
   await page.screenshot({ path: 'test-results/jarvis-dashboard.png', fullPage: true, animations: 'disabled' })
 })
 

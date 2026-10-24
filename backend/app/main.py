@@ -62,7 +62,7 @@ def create_app(settings: Settings | None = None):
         yield
         engine.dispose()
 
-    app = FastAPI(title="JARVIS AI", version="0.4.0", lifespan=lifespan)
+    app = FastAPI(title="JARVIS AI", version="0.5.0", lifespan=lifespan)
     app.state.sessions = sessions
     app.state.settings = settings
     app.state.environment = environment
@@ -125,7 +125,7 @@ def create_app(settings: Settings | None = None):
 
     @app.get("/api/health")
     def health():
-        result = {"status": "ok", "version": "0.4.0"}
+        result = {"status": "ok", "version": "0.5.0"}
         if settings.desktop_token:
             result["desktop_instance"] = hashlib.sha256(settings.desktop_token.encode()).hexdigest()[:16]
         return result
@@ -211,7 +211,10 @@ def create_app(settings: Settings | None = None):
         task = db.get(Task, task_id)
         if not task:
             raise HTTPException(404, "Tarefa não encontrada.")
+        was_done = task.done
         task.done = body.done
+        if body.done and not was_done:
+            memory.capture_task(db, task)
         db.commit()
         return task
 
@@ -220,6 +223,7 @@ def create_app(settings: Settings | None = None):
         task = db.get(Task, task_id)
         if not task:
             raise HTTPException(404, "Tarefa não encontrada.")
+        memory.remove_task(db, task.id)
         db.delete(task)
         db.commit()
         return {"ok": True}

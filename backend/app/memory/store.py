@@ -2,12 +2,12 @@ import hashlib
 import json
 import uuid
 from sqlalchemy import delete, select, update
-from ..database import Document, Message, Search, now
+from ..database import Document, Message, Search, Task, now
 from .models import (Conversation, DocumentChunk, DocumentOriginal, MemoryEdge, MemoryNode,
                      MemoryState, MemorySuppression, MessageConversation)
 
 KINDS = {"document": "Documentos", "question": "Perguntas", "answer": "Respostas", "search": "Pesquisas",
-         "conversation": "Conversas", "project": "Projetos", "topic": "Assuntos", "image": "Imagens", "video": "Vídeos", "note": "Notas"}
+         "conversation": "Conversas", "project": "Projetos", "topic": "Assuntos", "image": "Imagens", "video": "Vídeos", "note": "Notas", "task": "Tarefas concluídas"}
 
 
 def state(db):
@@ -95,6 +95,34 @@ def capture_search(db, record):
                       record.id, {"sources": results, "provider": "Brave Search"}, record.created_at)
 
 
+def capture_task(db, task, legacy=False):
+    """Uma memória por tarefa concluída; preserva uma fotografia da conclusão."""
+    if not task.done:
+        return None
+    origin = f"task:{task.id}:{task.created_at.isoformat()}"
+    identifier = node_id(origin)
+    existing = db.get(MemoryNode, identifier)
+    if existing and legacy:
+        return existing
+    completed = None if legacy else now().isoformat()
+    content = (f"Tarefa concluída: {task.title}\nPrioridade: {task.priority}\n"
+               f"Criada em: {task.created_at.isoformat()}\n"
+               f"Conclusão: {completed or 'Data não registrada na versão anterior.'}")
+    if task.due_at:
+        content += f"\nPrazo: {task.due_at.isoformat()}"
+    meta = {"completed_at": completed, "task_created_at": task.created_at.isoformat(), "priority": task.priority}
+    if existing:
+        existing.title, existing.content, existing.meta = task.title, content, json.dumps(meta, ensure_ascii=False)
+        touch(db)
+        return existing
+    return upsert(db, "task", task.title, content, origin, task.id, meta)
+
+
+def remove_task(db, task_id):
+    for node in list(db.scalars(select(MemoryNode).where(MemoryNode.kind == "task", MemoryNode.source_id == task_id))):
+        remove_node(db, node.id, remove_source=False)
+
+
 def remove_node(db, identifier, remove_source=True, suppress=True):
     node = db.get(MemoryNode, identifier)
     if not node:
@@ -136,6 +164,9 @@ def bootstrap(db):
         for record in db.scalars(select(Search)):
             capture_search(db, record)
         current.initialized = True
+    # Retrocompatibilidade idempotente, sem inventar datas de conclusão antigas.
+    for task in db.scalars(select(Task).where(Task.done.is_(True))):
+        capture_task(db, task, legacy=True)
     # Respeita a retenção/exclusão dos dados originais ao reiniciar.
     present = {"question": set(db.scalars(select(Message.id))), "answer": set(db.scalars(select(Message.id))),
                "search": set(db.scalars(select(Search.id))), "document": set(db.scalars(select(Document.id)))}

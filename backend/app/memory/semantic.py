@@ -11,6 +11,7 @@ from .models import MemoryEdge, MemoryNode
 from .store import link, node_id, state
 
 STOPWORDS = "a ao aos aquela aquele aqueles aqui as ate com como da das de dela dele deles depois do dos e ela ele eles em entre era essa esse esses esta estamos estar estas este estes eu foi foram ha isso isto ja lhe mais mas me mesmo meu minha muito na nas nao nem no nos nossa nosso num numa o os ou para pela pelas pelo pelos por porque qual quando que quem se sem seu seus sua suas sobre so tambem tem temos ter um uma umas uns voce voces foi ser sao assim ainda tudo quero jarvis tarefa crie abrir abra mostre informe esta disponivel configurado chave backend modelo pergunta perguntas resposta respostas documento documentos arquivo arquivos encontre encontrar busque buscar procure procurar pesquisa pesquisas memoria memorias conteudo minhas meus".split()
+STOPWORDS += "concluida concluido conclusao prioridade criada registrado registrada prazo".split()
 
 
 class SemanticIndex:

@@ -1,8 +1,12 @@
 # JARVIS — núcleo pessoal com voz e gestos
 
-A versão **0.4** traz o painel imersivo: núcleo animado ao centro, data/local/clima e métricas reais à esquerda, serviços à direita e comandos na base. Sem perfil, avatar ou cadastro. No Windows, **Iniciar Jarvis.bat** abre uma janela própria do Edge/Chrome e prepara a sessão local automaticamente. A paleta permanece roxa, com memórias 3D, voz e gestos.
+A versão **0.5** coloca o **cérebro de memórias 3D no centro da tela principal**, com neurônios conectados, luminosidade pulsante, zoom, títulos e abertura do conteúdo de cada registro. Cada esfera corresponde a uma memória salva; tarefas concluídas passam a formar neurônios também. O círculo decorativo da versão anterior foi removido.
 
-![Painel imersivo do Jarvis, sem dados demonstrativos](docs/assets/jarvis-hud.png)
+![Cérebro com notas e tarefas de teste realmente persistidas](docs/assets/brain-home.png)
+
+A imagem usa registros de teste num banco temporário, identificados nos títulos. Na sua instalação, a rede usa os seus dados existentes, sem preencher o cérebro com memórias fictícias. Veja [CEREBRO_PRINCIPAL.md](docs/CEREBRO_PRINCIPAL.md) para o zoom, gestos, preservação dos dados e tarefas antigas.
+
+Data, hora, local, clima, voz e serviços permanecem no painel. No Windows, **Iniciar Jarvis.bat** abre uma janela própria do Edge/Chrome e prepara a sessão local automaticamente, sem perfil ou cadastro. A paleta continua roxa.
 
 Leia [PAINEL_IMERSIVO.md](docs/PAINEL_IMERSIVO.md) para o iniciador, serviços, sessão local e limites das integrações. O sistema unifica o que já está implementado; e-mail e calendário externo ainda não têm conectores e aparecem com esse estado explícito.
 
@@ -14,7 +18,9 @@ Inspirado na experiência de [holo-gestures](https://github.com/zubair-trabzada/
 | --- | --- |
 | Cérebro 3D com memórias persistentes, agrupamentos e relações explicáveis | Implementado; módulo Memórias |
 | Pinça simples, dupla e reversa; mouse e teclado | Implementado; calibre e valide os gestos com sua webcam |
-| Painel imersivo, núcleo reativo e módulos sobrepostos | Implementado, sem interface de conta |
+| Painel imersivo com cérebro real no centro e módulos sobrepostos | Implementado, sem círculo decorativo nem interface de conta |
+| Cada esfera ligada a um registro, zoom, títulos e leitura | Implementado na tela principal; sem pontos de categoria artificiais |
+| Memórias de tarefas concluídas, inclusive de versões anteriores | Implementado, com deduplicação e data antiga não inventada |
 | Janela local pelo iniciador Windows | Implementado com Edge/Chrome em modo aplicativo; abertura física no Windows ainda deve ser conferida |
 | CPU, memória e tráfego de rede | Métricas reais da máquina do backend, com psutil |
 | Resumo “bom dia” | Horário, agenda local, prioridades e clima disponível; sem chave de IA |

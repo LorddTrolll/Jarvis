@@ -45,6 +45,7 @@ export default function App() {
   const desktopToken = useRef(new URLSearchParams(window.location.hash.slice(1)).get('desktop') || '')
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState<Status | null>(null)
+  const [neuralSynthetic,setNeuralSynthetic] = useState(false)
   const [panel, setPanel] = useState<Panel>('dashboard')
   const [tasks, setTasks] = useState<Task[]>([])
   const [messages, setMessages] = useState<Message[]>([])
@@ -143,10 +144,10 @@ export default function App() {
     return () => window.removeEventListener('jarvis-session-expired', expired)
   }, [voice.stop, hands.stop])
   useEffect(() => {
-    const escape = (e: KeyboardEvent) => { if (e.key === 'Escape') { if(!document.querySelector('[role=dialog]')) go('dashboard'); abort.current?.abort(); voice.stop(); setDialog(null); setReview(null); setDeleteTarget(null) } }
+    const escape = (e: KeyboardEvent) => { if (e.key === 'Escape') { if(!document.querySelector('[role=dialog]')&&panel!=='dashboard'&&panel!=='neural') go('dashboard'); abort.current?.abort(); voice.stop(); setDialog(null); setReview(null); setDeleteTarget(null) } }
     window.addEventListener('keydown', escape)
     return () => window.removeEventListener('keydown', escape)
-  }, [voice.stop, go])
+  }, [voice.stop, go, panel])
 
   gestureCallback.current = frame => {
     if (cursor.current) {
@@ -155,7 +156,7 @@ export default function App() {
       cursor.current.dataset.pinch = String(frame.gesture === 'pinch')
     }
     if (document.querySelector('[role="dialog"]')) return
-    if(panel === 'neural' && neuralFrame.current?.(frame)) return
+    if((panel === 'neural'||panel==='dashboard') && neuralFrame.current?.(frame)) return
     for (const action of frame.actions) {
       if (action === 'pause') { voice.stop(); abort.current?.abort(); notify('Navegação por gestos pausada.') }
       if (action === 'home') go('dashboard')
@@ -183,7 +184,7 @@ export default function App() {
   }
 
   const send = async (text: string) => {
-    if (!text.trim() || busy) return
+    if (!text.trim() || busy || neuralSynthetic) return
     if(panel !== 'neural' && panel !== 'dashboard') go('chat'); setChatText(''); setBusy(true)
     const controller = new AbortController(); abort.current = controller
     const id = Date.now()
@@ -257,15 +258,15 @@ export default function App() {
 
   const composer = (hero = false) => <form className={`composer ${hero ? 'hero-composer' : ''}`} onSubmit={e => { e.preventDefault(); void send(chatText) }}>
     <Sparkles size={19} className="composer-spark" />
-    <textarea aria-label="Mensagem para o Jarvis" placeholder='Digite: “bom dia”, “clima”, “abra minhas memórias”…' value={chatText} onChange={e => setChatText(e.target.value)} maxLength={8000} rows={1} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(chatText) } }} disabled={busy} />
+    <textarea aria-label="Mensagem para o Jarvis" placeholder='Digite: “bom dia”, “clima”, “abra minhas memórias”…' value={chatText} onChange={e => setChatText(e.target.value)} maxLength={8000} rows={1} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(chatText) } }} disabled={busy||neuralSynthetic} />
     {voice.listening ? <button type="button" className="icon-button listening" aria-label="Parar microfone" onClick={voice.stop}><MicOff size={19} /></button> : <button type="button" className="icon-button" aria-label="Falar com Jarvis" onClick={startVoice} disabled={busy} title="Clique para falar (pt-BR)"><Mic size={19} /></button>}
-    {busy ? <button type="button" className="send-button" aria-label="Interromper resposta" onClick={() => abort.current?.abort()}><Square size={15} /></button> : <button type="submit" className="send-button" aria-label="Enviar mensagem" disabled={!chatText.trim()}><ArrowRight size={20} /></button>}
+    {busy ? <button type="button" className="send-button" aria-label="Interromper resposta" onClick={() => abort.current?.abort()}><Square size={15} /></button> : <button type="submit" className="send-button" aria-label="Enviar mensagem" disabled={neuralSynthetic||!chatText.trim()}><ArrowRight size={20} /></button>}
   </form>
 
   if (!session?.authenticated) return <div className="os-startup"><div className="startup-mark"><AudioLines size={42}/></div><h1>J.A.R.V.I.S</h1>{session?.password_required ? <><p>Núcleo protegido</p><form onSubmit={login}><label>Chave de acesso<input type="password" autoComplete="current-password" aria-label="Senha do proprietário" value={password} onChange={e => setPassword(e.target.value)} required autoFocus /></label><Submit busy={working}>Desbloquear núcleo</Submit></form><small>No Windows, o iniciador abre uma sessão local automaticamente.</small></> : <p><LoaderCircle className="spin" size={15}/>Inicializando núcleo local…</p>}{toast && <div role="alert" className="toast error">{toast.text}</div>}</div>
 
   let content: ReactNode
-  if (panel === 'neural') content = <Suspense fallback={<div className="panel-surface">Preparando o cérebro 3D…</div>}><NeuralMemory frameHandler={neuralFrame} command={neuralCommand} cameraActive={hands.active} onCamera={() => hands.active ? hands.stop() : void hands.start()} onAsk={text=>void send(text)} busy={busy} answer={messages.at(-1)?.role==='assistant' ? messages.at(-1)!.content : ''} temporary={temporary} onTemporary={toggleTemporary} onRefresh={refresh} notify={notify} reduced={reduced} onVoice={() => voice.listening ? voice.stop() : startVoice()} listening={voice.listening} interim={voice.interim} allowDocuments={allowDocuments} onAllowDocuments={setAllowDocuments}/></Suspense>
+  if (panel === 'neural') content = null
   else if (panel === 'dashboard') content = null
   else if (panel === 'chat') content = <section className="chat-panel panel-surface"><div className="section-head"><span className="mini-title"><MessageSquare size={16} />{temporary?'TEMPORÁRIA':'CONVERSA'}</span><button className="text-button" onClick={toggleTemporary}>{temporary?'Salvar próximas conversas':'Conversa temporária'}</button><label className="compact-search"><Search size={15} /><input aria-label="Buscar conversa" placeholder="Buscar no histórico" value={chatFilter} onChange={e => setChatFilter(e.target.value)} /></label></div>
     {!status?.ai_configured && <Notice>Conecte o provedor de IA nas configurações para conversar sobre qualquer assunto. Hora, data, clima e tarefas já funcionam com comandos locais.</Notice>}
@@ -291,12 +292,13 @@ export default function App() {
     if (status?.search_configured) void perform(async () => { const result = await api<{results:Source[]}>('/search', {method:'POST',body:JSON.stringify({query:newsQuery})}); setSources(result.results) })
     else notify('Conecte a pesquisa nas configurações para consultar notícias atuais.')
   }
+  const brain = <Suspense fallback={<div className="panel-surface">Preparando o cérebro 3D…</div>}><NeuralMemory onSynthetic={setNeuralSynthetic} embedded expanded={panel==='neural'} active={panel==='neural'||panel==='dashboard'} onExpand={() => go(panel==='neural'?'dashboard':'neural')} frameHandler={neuralFrame} command={neuralCommand} cameraActive={hands.active} onCamera={() => hands.active ? hands.stop() : void hands.start()} onAsk={text=>void send(text)} busy={busy} answer={messages.at(-1)?.role==='assistant' ? messages.at(-1)!.content : ''} temporary={temporary} onTemporary={toggleTemporary} onRefresh={refresh} notify={notify} reduced={reduced} onVoice={() => voice.listening ? voice.stop() : startVoice()} listening={voice.listening} interim={voice.interim} allowDocuments={allowDocuments} onAllowDocuments={setAllowDocuments}/></Suspense>
   const camera = <section className="camera-card panel-surface"><div className="section-head"><span className="mini-title"><Camera size={15} />VISÃO LOCAL</span><span className={`camera-led ${hands.active ? 'on' : ''}`} /></div><div className={`camera-viewport ${hands.active ? 'camera-on' : ''}`}><video ref={hands.videoRef} muted playsInline aria-label="Sua câmera local" /><canvas ref={hands.canvasRef} aria-label="Pontos de rastreamento das mãos" />{!hands.active && <div className="camera-placeholder"><div className="camera-target"><CameraOff size={25} strokeWidth={1.3} /></div><strong>{hands.loading ? 'Preparando sua câmera…' : 'Seu próximo movimento'}</strong><span>{hands.loading ? 'Carregando o modelo local de mãos' : 'Controle sua interface com gestos'}</span></div>}<span className="camera-corner tl"/><span className="camera-corner tr"/><span className="camera-corner bl"/><span className="camera-corner br"/>{hands.active && <div className="camera-info"><span><span className="live-dot" />AO VIVO</span><span>{hands.fps} FPS</span></div>}</div><div className="camera-status"><span>{hands.active ? LABELS[hands.frame.gesture] : 'Câmera e rastreamento desligados'}</span>{hands.active && <span className="mono">{hands.frame.hands}/2</span>}</div><button className={`button ${hands.active || hands.loading ? 'secondary' : 'primary'} full-width`} disabled={false} onClick={() => hands.active || hands.loading ? hands.stop() : void hands.start()} data-sensitive={hands.active || hands.loading ? undefined : 'true'} data-gesture-safe={hands.active || hands.loading ? 'true' : undefined}>{hands.loading ? <LoaderCircle size={16} className="spin" /> : <Camera size={16} />}{hands.loading ? 'Cancelar ativação' : hands.active ? 'Desligar câmera' : 'Ativar câmera'}</button><p className="camera-privacy"><ShieldCheck size={11} />Vídeo processado apenas neste dispositivo</p></section>
   return <div className={`jarvis-os panel-${panel} ${hands.active || hands.loading ? 'camera-visible' : ''}`}>
-    <Hud environment={environment} status={status} panel={panel} go={go} onLocation={() => setLocationOpen(true)} onEmail={() => setDialog('email')} onNews={openNews} onStop={stopAll} onAsk={text => void send(text)} composer={composer()} camera={camera} tasks={tasks} answer={messages.at(-1)?.role==='assistant' ? messages.at(-1)!.content : ''} interim={voice.interim} busy={busy} listening={voice.listening} speaking={voice.speaking} readAloud={readAloud} onVoiceOutput={toggleVoiceOutput} onVoiceStop={voice.stop} reduced={reduced} temporary={temporary} onTemporary={toggleTemporary} cameraActive={hands.active} voiceSupported={voice.synthesisSupported}/>
-    {panel !== 'dashboard' && <section className={`os-service-layer service-${panel}`} aria-label={NAV.find(n => n.id === panel)?.label}><header className="os-service-header"><span><span className="os-module-dot"/>JARVIS / {NAV.find(n => n.id === panel)?.label}</span><button className="icon-button" aria-label="Fechar módulo" title="Voltar ao núcleo" onClick={() => go('dashboard')} data-gesture-safe="true"><X size={18}/></button></header><main className="os-service-scroll" ref={scrollRef}><div className="page-heading"><div><h1>{TITLES[panel][0]}</h1><p>{TITLES[panel][1]}</p></div></div>{content}{panel==='settings'&&session.password_required&&<button className="button secondary" onClick={() => void logout()}>Bloquear núcleo</button>}</main></section>}
+    <Hud environment={environment} status={status} panel={panel} go={go} brain={brain} onLocation={() => setLocationOpen(true)} onEmail={() => setDialog('email')} onNews={openNews} onStop={stopAll} onAsk={text => void send(text)} composer={composer()} camera={camera} tasks={tasks} answer={messages.at(-1)?.role==='assistant' ? messages.at(-1)!.content : ''} interim={voice.interim} busy={busy} listening={voice.listening} speaking={voice.speaking} readAloud={readAloud} onVoiceOutput={toggleVoiceOutput} onVoiceStop={voice.stop} reduced={reduced} temporary={temporary} onTemporary={toggleTemporary} cameraActive={hands.active} voiceSupported={voice.synthesisSupported}/>
+    {panel !== 'dashboard' && panel !== 'neural' && <section className={`os-service-layer service-${panel}`} aria-label={NAV.find(n => n.id === panel)?.label}><header className="os-service-header"><span><span className="os-module-dot"/>JARVIS / {NAV.find(n => n.id === panel)?.label}</span><button className="icon-button" aria-label="Fechar módulo" title="Voltar ao núcleo" onClick={() => go('dashboard')} data-gesture-safe="true"><X size={18}/></button></header><main className="os-service-scroll" ref={scrollRef}><div className="page-heading"><div><h1>{TITLES[panel][0]}</h1><p>{TITLES[panel][1]}</p></div></div>{content}{panel==='settings'&&session.password_required&&<button className="button secondary" onClick={() => void logout()}>Bloquear núcleo</button>}</main></section>}
     {(voice.error || hands.error) && <div role="alert" className="os-device-error"><span>{voice.error || hands.error}</span><button className="text-button" onClick={() => go('settings')}>Ajustes</button></div>}
-    {(voice.speaking || voice.listening) && panel!=='dashboard' && <button className="floating-voice-stop" onClick={voice.stop}><VolumeX size={17}/>{voice.speaking ? "Interromper fala" : "Parar microfone"}</button>}
+    {(voice.speaking || voice.listening) && panel!=='dashboard'&&panel!=='neural' && <button className="floating-voice-stop" onClick={voice.stop}><VolumeX size={17}/>{voice.speaking ? "Interromper fala" : "Parar microfone"}</button>}
     <div ref={cursor} className="gesture-cursor" aria-hidden="true"><span /></div>
     {toast && <div className={`toast ${toast.error ? 'error' : ''}`} role={toast.error ? 'alert' : 'status'}>{toast.error ? <X size={17} /> : <Check size={17} />}<span>{toast.text}</span><button aria-label="Fechar aviso" onClick={() => setToast(null)}><X size={15} /></button></div>}
     {locationOpen && <LocationDialog environment={environment} onClose={() => setLocationOpen(false)} />}

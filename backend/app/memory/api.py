@@ -26,6 +26,7 @@ class NeuralGestureConfiguration(BaseModel):
 
 
 class ViewState(BaseModel):
+    layout_version: Literal["brain-v2"] | None = None
     level: Literal["global", "cluster", "file"] = "global"
     selected: str | None = Field(None, max_length=64)
     parent: str | None = Field(None, max_length=64)

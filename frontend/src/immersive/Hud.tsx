@@ -4,14 +4,12 @@ import { useEffect, useState } from 'react'
 import type { Panel, Status, Task } from '../types'
 import type { Environment } from '../environment/useEnvironment'
 import { WeatherIcon } from '../environment/Environment'
-import { Core } from './Core'
-import type { CoreState } from './Core'
 import { useTelemetry } from './useTelemetry'
 
 interface Props {
   environment: Environment; status: Status | null; panel: Panel; go: (panel: Panel) => void
   onLocation: () => void; onEmail: () => void; onNews: () => void; onStop: () => void; onAsk: (text: string) => void
-  composer: ReactNode; camera: ReactNode; tasks: Task[]; answer: string; interim: string; busy: boolean
+  brain: ReactNode; composer: ReactNode; camera: ReactNode; tasks: Task[]; answer: string; interim: string; busy: boolean
   listening: boolean; speaking: boolean; readAloud: boolean; onVoiceOutput: () => void; onVoiceStop: () => void; reduced: boolean
   temporary: boolean; onTemporary: () => void; cameraActive: boolean; voiceSupported: boolean
 }
@@ -31,7 +29,7 @@ export function Hud(p: Props) {
   const e=p.environment, telemetry=useTelemetry(true)
   const [fullscreen,setFullscreen]=useState(!!document.fullscreenElement),[fullscreenError,setFullscreenError]=useState('')
   useEffect(()=>{const update=()=>setFullscreen(!!document.fullscreenElement);document.addEventListener('fullscreenchange',update);return()=>document.removeEventListener('fullscreenchange',update)},[])
-  const state:CoreState=p.listening?'listening':p.busy?'thinking':p.speaking?'speaking':'idle'
+  const state=p.listening?'listening':p.busy?'thinking':p.speaking?'speaking':'idle'
   const stateLabel={idle:'EM ESPERA',listening:'OUVINDO VOCÊ',thinking:'PROCESSANDO',speaking:'RESPONDENDO'}[state]
   const activeTasks=p.tasks.filter(t=>!t.done), priorities=activeTasks.filter(t=>t.priority==='alta')
   const clock=e.now.toLocaleTimeString('pt-BR',{timeZone:e.timezone,hour:'2-digit',minute:'2-digit'})
@@ -49,8 +47,8 @@ export function Hud(p: Props) {
         <section className="hud-card hud-telemetry" aria-label="Telemetria do computador"><div className="hud-card-heading"><span className="hud-kicker">NÚCLEO</span><i className={telemetry.error?'telemetry-off':'telemetry-on'}/></div>{telemetry.error?<p className="telemetry-unavailable">Métricas indisponíveis</p>:<><div className="telemetry-meter"><span>CPU<strong>{telemetry.sample?.cpu_percent==null?'—':`${Math.round(telemetry.sample.cpu_percent)}%`}</strong></span><progress max={100} value={telemetry.sample?.cpu_percent??undefined} aria-label="Uso de CPU"/></div><div className="telemetry-meter"><span>Memória<strong>{telemetry.sample?`${Math.round(telemetry.sample.memory_percent)}%`:'—'}</strong></span><progress max={100} value={telemetry.sample?.memory_percent??undefined} aria-label="Uso de memória"/></div><div className="telemetry-network"><span>Rede</span><strong>↓ {rate(telemetry.sample?.download_bps)}</strong><small>↑ {rate(telemetry.sample?.upload_bps)}</small></div></>}<small className="telemetry-origin">MÁQUINA QUE EXECUTA O JARVIS</small></section>
         {p.camera}
       </aside>
-      <main className="hud-center" aria-label="Núcleo do assistente" aria-hidden={p.panel!=='dashboard'} inert={p.panel!=='dashboard'}><div className="hud-core-state"><h1>{stateLabel}</h1><span>{p.temporary?'MEMÓRIA TEMPORÁRIA':'PRONTO PARA CONECTAR SEU DIA'}</span></div><Core state={state} reduced={p.reduced} suspended={p.panel!=='dashboard'}/>
-        {p.panel==='dashboard'&&<div className="hud-command-area"><div className={`hud-response ${p.answer||p.interim?'has-answer':''}`} aria-live="polite" aria-busy={p.busy}>{p.interim?<p><Radio size={13}/>{p.interim}</p>:p.answer?<><span className="hud-kicker">JARVIS</span><p className="hud-answer">{p.answer}</p><button className="hud-response-history" onClick={()=>p.go('chat')}>Abrir conversa<ChevronRight size={12}/></button></>:<p className="hud-prompt">Diga “bom dia” ou toque no microfone.</p>}</div>
+      <main className="hud-center" aria-label="Núcleo do assistente" aria-hidden={p.panel!=='dashboard'&&p.panel!=='neural'} inert={p.panel!=='dashboard'&&p.panel!=='neural'}><div className="hud-core-state"><h1>{stateLabel}</h1><span>{p.temporary?'MEMÓRIA TEMPORÁRIA':'PRONTO PARA CONECTAR SEU DIA'}</span></div><div className="hud-brain">{p.brain}</div>
+        {(p.panel==='dashboard'||p.panel==='neural')&&<div className="hud-command-area"><div className={`hud-response ${p.answer||p.interim?'has-answer':''}`} aria-live="polite" aria-busy={p.busy}>{p.interim?<p><Radio size={13}/>{p.interim}</p>:p.answer?<><span className="hud-kicker">JARVIS</span><p className="hud-answer">{p.answer}</p><button className="hud-response-history" onClick={()=>p.go('chat')}>Abrir conversa<ChevronRight size={12}/></button></>:<p className="hud-prompt">Explore suas memórias ou toque no microfone para falar.</p>}</div>
           {p.composer}<div className="hud-command-shortcuts"><button disabled={p.busy} onClick={()=>p.onAsk('Bom dia')} data-gesture-safe="true"><Clock3 size={12}/>Bom dia</button><button disabled={p.busy} onClick={()=>p.onAsk('Como está o tempo?')} data-gesture-safe="true">Clima</button><button onClick={p.onTemporary} aria-pressed={p.temporary} title="Alternar conversa temporária"><ShieldCheck size={12}/>{p.temporary?'Temporária':'Memória ativa'}</button>{(p.speaking||p.listening)&&<button className="hud-speech-stop" onClick={p.onVoiceStop}><Square size={10}/>{p.speaking?'Interromper fala':'Parar microfone'}</button>}</div>
         </div>}
       </main>

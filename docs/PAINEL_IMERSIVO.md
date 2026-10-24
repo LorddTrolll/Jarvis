@@ -1,5 +1,7 @@
 # Jarvis — painel imersivo e janela local, versão 0.4
 
+> Desde a versão 0.5, o círculo central descrito neste documento foi substituído pelo cérebro de memórias. Veja [CEREBRO_PRINCIPAL.md](CEREBRO_PRINCIPAL.md). O iniciador e os demais serviços continuam disponíveis.
+
 A interface foi refeita a partir da referência do proprietário: núcleo luminoso ao centro, contexto à esquerda, serviços à direita e entrada de voz/texto na base. A paleta permanece violeta. Foram removidos o menu lateral de páginas, avatar, perfil, nome de conta, saudação de site e tela de entrada do uso local normal.
 
 ![Painel imersivo real em 1366×768](assets/jarvis-hud.png)

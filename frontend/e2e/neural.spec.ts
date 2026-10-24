@@ -69,9 +69,9 @@ test('conversa temporária não cria neurônios e exclusão remove apenas o alvo
   await page.getByRole('button',{name:'Iniciar conversa temporária'}).click()
   await page.getByRole('button',{name:'Fechar diálogo'}).click()
   const before=await page.request.get('/api/neural/graph').then(r=>r.json())
-  await page.getByLabel('Perguntar ao cérebro').fill('Uma pergunta temporária que não será registrada')
-  await page.getByRole('button',{name:'Enviar pergunta neural'}).click()
-  await expect(page.locator('.neural-last-answer')).toContainText('não está configurado')
+  await page.getByLabel('Mensagem para o Jarvis').fill('Uma pergunta temporária que não será registrada')
+  await page.getByRole('button',{name:'Enviar mensagem'}).click()
+  await expect(page.locator('.hud-answer')).toContainText('não está configurado')
   const after=await page.request.get('/api/neural/graph').then(r=>r.json())
   expect(after.total).toBe(before.total)
   await page.getByTestId('memory-'+document.node_id).click()
@@ -116,12 +116,13 @@ test('1.000 nós instanciados medem FPS e câmera continua controlável',async({
 })
 test('cérebro funciona em tela pequena sem overflow horizontal',async({page})=>{
   await page.setViewportSize({width:390,height:844})
-  await seed(page)
+  const memory=await seed(page)
+  await page.getByTestId('memory-'+memory.node_id).click()
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
   // O enquadramento anima até o centro dos nós reais, inclusive em uma tela estreita.
   await expect.poll(async()=>{
     const stage=await page.getByTestId('neural-stage').boundingBox()
-    const label=await page.locator('.hub-label').first().boundingBox()
+    const label=await page.locator('.neural-label').first().boundingBox()
     return !!stage && !!label && label.x >= stage.x + 5 && label.x + label.width <= stage.x + stage.width - 5
   }).toBe(true)
   await page.screenshot({path:'test-results/neural-mobile.png',animations:'disabled'})
